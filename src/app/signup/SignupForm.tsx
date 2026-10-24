@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { signUp } from "@/app/actions/auth";
 import { FormMessage } from "@/components/FormMessage";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Captcha } from "@/components/Captcha";
 import { AREAS, COMMUNITY_CHECKBOX } from "@/lib/constants";
 
 export function SignupForm() {
@@ -43,6 +44,7 @@ export function SignupForm() {
           <Link href="/rules" target="_blank" className="font-bold underline">Read the rules</Link>
         </span>
       </label>
+      <Captcha resetKey={state} />
       <SubmitButton pendingText="Creating your account...">Create my account</SubmitButton>
       <p className="text-center text-[0.9375rem]">
         Already a member? <Link href="/login" className="font-bold underline">Log in</Link>

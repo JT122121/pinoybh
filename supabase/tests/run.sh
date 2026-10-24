@@ -16,11 +16,18 @@ as_pg() { if [ "$(id -u)" = 0 ]; then runuser -u postgres -- "$@"; else "$@"; fi
 as_pg initdb -D "$tmp/data" -U postgres --auth=trust >/dev/null
 as_pg pg_ctl -D "$tmp/data" -o "-p $port -k $tmp -c listen_addresses=''" -l "$tmp/log" start >/dev/null
 psql_() { psql -X -q -v ON_ERROR_STOP=1 -h "$tmp" -p "$port" -U postgres "$@"; }
-psql_ -c "create database pinoybh" postgres
-psql_ -d pinoybh -f "$here/bootstrap.sql"
-for f in "$here"/../migrations/*.sql; do
-  case "$f" in *storage*) continue ;; esac # Storage schema only exists on Supabase
-  psql_ -d pinoybh -f "$f"
+
+# Run twice: as a new Supabase project (no default grants) and as an older
+# one (everything in public granted by default).
+for mode in new legacy; do
+  echo "== Supabase project type: $mode"
+  psql_ -c "create database pinoybh_$mode" postgres
+  psql_ -d "pinoybh_$mode" -f "$here/bootstrap.sql"
+  [ "$mode" = legacy ] && psql_ -d "pinoybh_$mode" -f "$here/legacy_defaults.sql"
+  for f in "$here"/../migrations/*.sql; do
+    case "$f" in *storage*) continue ;; esac # Storage schema only exists on Supabase
+    psql_ -d "pinoybh_$mode" -f "$f"
+  done
+  psql_ -d "pinoybh_$mode" -t -o /dev/null -f "$here/trust_safety.sql" 2>&1 | sed "s/^psql:[^ ]* NOTICE:  /  /"
 done
-psql_ -d pinoybh -t -o /dev/null -f "$here/trust_safety.sql" 2>&1 | sed "s/^psql:[^ ]* NOTICE:  /  /"
 echo "All database tests passed."

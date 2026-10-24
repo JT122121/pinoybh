@@ -6,6 +6,17 @@ import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/format";
 import type { FormState } from "@/lib/types";
 
+/** Turnstile token from the form; Supabase checks it when CAPTCHA is on. */
+function captchaToken(formData: FormData): string | undefined {
+  return String(formData.get("cf-turnstile-response") ?? "") || undefined;
+}
+
+function isCaptchaError(message: string) {
+  return /captcha/i.test(message);
+}
+
+const CAPTCHA_MESSAGE = "Please complete the check that you're a person, then try again.";
+
 async function siteUrl() {
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   const h = await headers();
@@ -30,9 +41,11 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
     options: {
       data: { display_name: displayName, area, rules_agreed: true },
       emailRedirectTo: `${await siteUrl()}/auth/callback?next=/account`,
+      captchaToken: captchaToken(formData),
     },
   });
   if (error) {
+    if (isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
     if (/already registered/i.test(error.message)) return { error: "That email already has an account. Try logging in." };
     return { error: "We could not create your account. Check your email address and try again." };
   }
@@ -46,8 +59,10 @@ export async function logIn(_prev: FormState, formData: FormData): Promise<FormS
   const { error } = await supabase.auth.signInWithPassword({
     email: String(formData.get("email") ?? "").trim(),
     password: String(formData.get("password") ?? ""),
+    options: { captchaToken: captchaToken(formData) },
   });
   if (error) {
+    if (isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
     if (/banned/i.test(error.message)) redirect("/banned");
     if (/not confirmed/i.test(error.message)) return { error: "Please confirm your email first. Check your inbox for our link." };
     return { error: "Wrong email or password." };
@@ -57,9 +72,11 @@ export async function logIn(_prev: FormState, formData: FormData): Promise<FormS
 
 export async function requestPasswordReset(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
-  await supabase.auth.resetPasswordForEmail(String(formData.get("email") ?? "").trim(), {
+  const { error } = await supabase.auth.resetPasswordForEmail(String(formData.get("email") ?? "").trim(), {
     redirectTo: `${await siteUrl()}/auth/callback?next=/reset-password`,
+    captchaToken: captchaToken(formData),
   });
+  if (error && isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
   // Same answer either way, so nobody can check which emails have accounts.
   return { success: "If that email has an account, we sent a link to reset your password." };
 }

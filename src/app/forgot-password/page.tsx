@@ -5,6 +5,7 @@ import { requestPasswordReset } from "@/app/actions/auth";
 import { AuthShell } from "@/components/AuthShell";
 import { FormMessage } from "@/components/FormMessage";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Captcha } from "@/components/Captcha";
 
 export default function ForgotPasswordPage() {
   const [state, action] = useActionState(requestPasswordReset, {});
@@ -16,6 +17,7 @@ export default function ForgotPasswordPage() {
           <span className="field-label">Your email</span>
           <input name="email" type="email" className="input" required autoComplete="email" />
         </label>
+        <Captcha resetKey={state} />
         <SubmitButton pendingText="Sending...">Send reset link</SubmitButton>
       </form>
     </AuthShell>

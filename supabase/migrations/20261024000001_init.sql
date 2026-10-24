@@ -867,11 +867,6 @@ create policy profiles_update_own on public.profiles for update
   using (id = auth.uid())
   with check (id = auth.uid() and (avatar_path is null or split_part(avatar_path, '/', 1) = id::text));
 
--- Members can only edit these columns. role / is_verified / is_banned are
--- changed by the admin functions above.
-revoke update on public.profiles from anon, authenticated;
-grant update (display_name, area, bio, avatar_path) on public.profiles to authenticated;
-
 create policy categories_select on public.categories for select using (true);
 
 -- Posts: active posts are public, minus authors who blocked you or are banned.
@@ -893,14 +888,6 @@ create policy posts_update_own on public.posts for update
 create policy posts_delete_own on public.posts for delete
   using (author_id = auth.uid() or public.is_staff());
 
-revoke insert, update on public.posts from anon, authenticated;
-grant insert (id, author_id, kind, category, job_type, title, description, price_type, price_bhd,
-              area, reference_url, own_post_confirmed, sponsorship_confirmed)
-  on public.posts to authenticated;
-grant update (title, description, price_type, price_bhd, area, reference_url,
-              own_post_confirmed, sponsorship_confirmed, status)
-  on public.posts to authenticated;
-
 -- Contacts: logged-in, non-banned members only.
 create policy post_contacts_select on public.post_contacts for select to authenticated
   using (
@@ -910,7 +897,6 @@ create policy post_contacts_select on public.post_contacts for select to authent
 create policy post_contacts_write on public.post_contacts for all to authenticated
   using (exists (select 1 from public.posts p where p.id = post_id and p.author_id = auth.uid()))
   with check (exists (select 1 from public.posts p where p.id = post_id and p.author_id = auth.uid()));
-revoke all on public.post_contacts from anon;
 
 create policy post_photos_select on public.post_photos for select
   using (exists (select 1 from public.posts p where p.id = post_id));
@@ -926,14 +912,11 @@ create policy flag_terms_staff on public.flag_terms for all
 
 create policy blocks_own on public.blocks for all to authenticated
   using (blocker_id = auth.uid()) with check (blocker_id = auth.uid());
-revoke update on public.blocks from anon, authenticated;
 
 -- Follows: you only ever see your own.
 create policy follows_own on public.follows for all to authenticated
   using (follower_id = auth.uid())
   with check (follower_id = auth.uid() and public.is_active_member());
--- No updates: unfollow and follow again. Keeps the block check unskippable.
-revoke update on public.follows from anon, authenticated;
 
 create policy synonyms_select on public.synonym_groups for select using (true);
 create policy synonyms_staff on public.synonym_groups for all
@@ -945,35 +928,81 @@ create policy notifications_mark_read on public.notifications for update to auth
   using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy notifications_delete_own on public.notifications for delete to authenticated
   using (user_id = auth.uid());
-revoke update on public.notifications from anon, authenticated;
-grant update (read_at) on public.notifications to authenticated;
 
 create policy reports_insert on public.reports for insert to authenticated
   with check (reporter_id = auth.uid() and public.is_active_member());
 create policy reports_select on public.reports for select
   using (reporter_id = auth.uid() or public.is_staff());
-revoke insert, update on public.reports from anon, authenticated;
-grant insert (reporter_id, post_id, profile_id, reason, details) on public.reports to authenticated;
 
 create policy verification_own on public.verification_requests for select
   using (user_id = auth.uid() or public.is_staff());
 create policy verification_insert on public.verification_requests for insert to authenticated
   with check (user_id = auth.uid() and public.is_active_member());
-revoke insert, update on public.verification_requests from anon, authenticated;
-grant insert (user_id, social_url, ph_mobile) on public.verification_requests to authenticated;
 
 create policy admin_actions_staff on public.admin_actions for select using (public.is_staff());
 
--- Admin/internal functions are not callable by anonymous visitors.
-revoke execute on function public.admin_set_post_status, public.admin_resolve_report,
-  public.admin_set_ban, public.admin_review_verification, public.admin_revoke_verification,
-  public.delete_my_account, public.my_follower_count
-  from public, anon;
+-- ---------------------------------------------------------------------------
+-- Permissions
+-- ---------------------------------------------------------------------------
+-- Every grant is spelled out instead of relying on Supabase's default
+-- privileges, which changed for new projects in 2026 (tables are no longer
+-- exposed to the API automatically). Start from nothing, then allow only
+-- what the app needs. RLS policies above still decide which rows.
+
+revoke all on all tables in schema public from anon, authenticated;
+revoke all on all sequences in schema public from anon, authenticated;
+revoke execute on all functions in schema public from public, anon, authenticated;
+grant usage on schema public to anon, authenticated;
+
+-- Public reading (logged-out visitors too)
+grant select on public.profiles, public.categories, public.posts, public.post_photos,
+  public.synonym_groups to anon, authenticated;
+
+-- Members can only edit these profile columns. role / is_verified /
+-- is_banned are changed by the admin functions.
+grant update (display_name, area, bio, avatar_path) on public.profiles to authenticated;
+
+-- Posts: status, flags and notified_at are set by the database, not members
+-- (members may change status only to close or re-open; the trigger checks).
+grant insert (id, author_id, kind, category, job_type, title, description, price_type, price_bhd,
+              area, reference_url, own_post_confirmed, sponsorship_confirmed)
+  on public.posts to authenticated;
+grant update (title, description, price_type, price_bhd, area, reference_url,
+              own_post_confirmed, sponsorship_confirmed, status)
+  on public.posts to authenticated;
+grant delete on public.posts to authenticated;
+
+-- Contact details: never visible to logged-out visitors.
+grant select, insert, update, delete on public.post_contacts to authenticated;
+grant insert, update, delete on public.post_photos to authenticated;
+
+-- Blocks and follows: no updates, so the block check can't be skipped.
+grant select, insert, delete on public.blocks, public.follows to authenticated;
+
+grant select, delete on public.notifications to authenticated;
+grant update (read_at) on public.notifications to authenticated;
+
+grant select on public.reports to authenticated;
+grant insert (reporter_id, post_id, profile_id, reason, details) on public.reports to authenticated;
+
+grant select on public.verification_requests to authenticated;
+grant insert (user_id, social_url, ph_mobile) on public.verification_requests to authenticated;
+
+-- Staff-only tables (RLS limits these to moderators and admins).
+grant select, insert, update, delete on public.flag_terms to authenticated;
+grant insert, update, delete on public.synonym_groups to authenticated;
+grant usage on sequence public.synonym_groups_id_seq to authenticated;
+grant select on public.admin_actions to authenticated;
+
+-- Functions used by RLS policies and search.
+grant execute on function public.is_staff, public.is_active_member, public.is_blocked_by,
+  public.normalize_term, public.build_search_query, public.search_posts
+  to anon, authenticated;
+
+-- Member and admin functions. Each admin function checks for staff itself.
 grant execute on function public.admin_set_post_status, public.admin_resolve_report,
   public.admin_set_ban, public.admin_review_verification, public.admin_revoke_verification,
   public.delete_my_account, public.my_follower_count
   to authenticated;
-revoke execute on function public.handle_new_user, public.enforce_post_rules,
-  public.enforce_photo_limit, public.enforce_follow_rules, public.handle_block,
-  public.fan_out_post, public.enforce_report_rules, public.auto_hide_reported_post
-  from public, anon, authenticated;
+-- Trigger functions (handle_new_user, enforce_*, fan_out_post, ...) get no
+-- grants: triggers run them without needing execute rights.

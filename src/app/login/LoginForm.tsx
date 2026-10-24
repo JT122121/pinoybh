@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { logIn } from "@/app/actions/auth";
 import { FormMessage } from "@/components/FormMessage";
 import { SubmitButton } from "@/components/SubmitButton";
+import { Captcha } from "@/components/Captcha";
 
 export function LoginForm({ next, linkError }: { next: string; linkError: boolean }) {
   const [state, action] = useActionState(logIn, linkError ? { error: "That link has expired or was already used. Log in, or ask for a new link." } : {});
@@ -20,6 +21,7 @@ export function LoginForm({ next, linkError }: { next: string; linkError: boolea
         <span className="field-label">Password</span>
         <input name="password" type="password" className="input" required autoComplete="current-password" />
       </label>
+      <Captcha resetKey={state} />
       <SubmitButton pendingText="Logging in...">Log in</SubmitButton>
       <div className="flex flex-wrap justify-between gap-2 text-[0.9375rem]">
         <Link href="/forgot-password" className="underline">Forgot your password?</Link>
