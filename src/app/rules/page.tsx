@@ -1,5 +1,5 @@
 import { TextPage } from "@/components/TextPage";
-import { RULES } from "@/content/rules";
+import { POSTING_LIMITS, RULES } from "@/content/rules";
 
 export const metadata = { title: "Community rules" };
 
@@ -18,6 +18,21 @@ export default function RulesPage() {
           </li>
         ))}
       </ol>
+      <h2 id="limits">Posting limits</h2>
+      <p>These limits stop spam and fake accounts. The site tells you if you reach one.</p>
+      <ul className="panel !mt-3 grid divide-y divide-line !pl-0">
+        {POSTING_LIMITS.map((l) => (
+          <li key={l.what} className="grid gap-1 px-5 py-3 sm:grid-cols-[16rem_1fr] sm:gap-4">
+            <strong>{l.what}</strong>
+            <span>{l.limit}</span>
+          </li>
+        ))}
+      </ul>
+      <p className="!mt-4">
+        After your first week there is no daily limit on listings and events, but please post each item only once. Posting
+        the same thing again and again is spam, and moderators may remove it.
+      </p>
+
       <h2>What happens if someone breaks the rules</h2>
       <p>
         Moderators can remove posts and ban accounts. A post that several members report is hidden until a moderator checks it.

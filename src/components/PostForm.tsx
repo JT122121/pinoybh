@@ -245,7 +245,8 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
       <div className="flex flex-wrap items-center gap-3">
         <SubmitButton pendingText="Saving...">{isEdit ? "Save changes" : "Publish post"}</SubmitButton>
         <p className="text-[0.9375rem] text-muted">
-          Posts that mention fees, visas or banned items are checked by a moderator before they go live.
+          Posts that mention fees, visas or banned items are checked by a moderator before they go live. See the{" "}
+          <Link href="/rules#limits" target="_blank" className="underline">posting limits</Link>.
         </p>
       </div>
     </form>
