@@ -10,7 +10,7 @@ export function SiteFooter() {
           <Link href="/about">About</Link>
           <Link href="/rules">Community rules</Link>
           <Link href="/safety">Stay safe</Link>
-          <Link href="/privacy">Privacy</Link>
+          <Link href="/privacy">Privacy Policy</Link>
         </nav>
       </div>
     </footer>

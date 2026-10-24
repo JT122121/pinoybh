@@ -46,6 +46,10 @@ export function SignupForm() {
       </label>
       <Captcha resetKey={state} />
       <SubmitButton pendingText="Creating your account...">Create my account</SubmitButton>
+      <p className="text-center text-sm text-muted">
+        See how we handle your information in our{" "}
+        <Link href="/privacy" target="_blank" className="underline">Privacy Policy</Link>.
+      </p>
       <p className="text-center text-[0.9375rem]">
         Already a member? <Link href="/login" className="font-bold underline">Log in</Link>
       </p>
