@@ -1,6 +1,6 @@
 # PinoyBH — v1 Spec (draft)
 
-> A community marketplace and job board for Filipinos in Bahrain.
+> A community marketplace, job board and events page for Filipinos in Bahrain.
 
 Status: **approved for build** (owner: "best policy"). Items marked **[DEFAULT]** were decided on the owner's behalf and can be overturned later.
 
@@ -27,7 +27,7 @@ Status: **approved for build** (owner: "best policy"). Items marked **[DEFAULT]*
 
 ## 4. Accounts and sign-up
 
-- Home, About and Sign-up pages all state: "A community marketplace and job board for Filipinos in Bahrain."
+- Home, About and Sign-up pages all state: "A community marketplace, job board and events page for Filipinos in Bahrain."
 - Required checkbox at sign-up:
   "I am a Filipino or part of the Filipino community in Bahrain, and I agree to follow the community rules."
 - Store only `rules_agreed_at` (timestamp). Do **not** store a nationality or "is Filipino" field (Bahrain PDPL, Law 30 of 2018, may treat ethnic origin as sensitive data).

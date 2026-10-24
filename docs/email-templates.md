@@ -16,7 +16,7 @@ Also set **Authentication > URL Configuration > Redirect URLs** to `https://YOUR
 
 ```html
 <h2>Mabuhay, kabayan!</h2>
-<p>Thanks for joining PinoyBH, the community marketplace and job board for Filipinos in Bahrain.</p>
+<p>Thanks for joining PinoyBH, the community marketplace, job board and events page for Filipinos in Bahrain.</p>
 <p><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup">Confirm my email</a></p>
 <p>Then log in with your email and password.</p>
 <p>If you didn't sign up, you can ignore this email.</p>

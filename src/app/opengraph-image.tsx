@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "PinoyBH: a community marketplace and job board for Filipinos in Bahrain";
+export const alt = "PinoyBH: a community marketplace, job board and events page for Filipinos in Bahrain";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

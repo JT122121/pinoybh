@@ -1,6 +1,6 @@
 import type { ContactMethod, JobType, PostStatus, ReportReason } from "./types";
 
-export const COMMUNITY_STATEMENT = "A community marketplace and job board for Filipinos in Bahrain.";
+export const COMMUNITY_STATEMENT = "A community marketplace, job board and events page for Filipinos in Bahrain.";
 
 export const COMMUNITY_CHECKBOX =
   "I am a Filipino or part of the Filipino community in Bahrain, and I agree to follow the community rules.";

@@ -1,8 +1,8 @@
 # PinoyBH
 
-A community marketplace and job board for Filipinos in Bahrain.
+A community marketplace, job board and events page for Filipinos in Bahrain.
 
-Members post for themselves (no businesses, agencies or recruiters): things to sell or give away, bedspaces, balikbayan box space, and jobs. The full product spec is in [SPEC.md](SPEC.md).
+Members post for themselves (no businesses, agencies or recruiters): things to sell or give away, bedspaces, balikbayan box space, jobs, and community events. The full product spec is in [SPEC.md](SPEC.md).
 
 ## How it's built
 
