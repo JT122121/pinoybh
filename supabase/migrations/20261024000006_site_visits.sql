@@ -79,6 +79,6 @@ $$;
 revoke all on public.site_visits from anon, authenticated;
 grant select on public.site_visits to authenticated;
 
-revoke execute on function public.record_visit, public.visit_totals, public.top_pages from public;
+revoke execute on function public.record_visit, public.visit_totals, public.top_pages from public, anon;
 grant execute on function public.record_visit to anon, authenticated;
 grant execute on function public.visit_totals, public.top_pages to authenticated;

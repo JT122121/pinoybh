@@ -117,7 +117,7 @@ export default async function ProfilePage({ params, searchParams }: Params) {
                       <summary className="btn btn-quiet list-none px-4 [&::-webkit-details-marker]:hidden" aria-label="More options">
                         <span aria-hidden className="text-xl leading-none">&middot;&middot;&middot;</span>
                       </summary>
-                      <div className="absolute right-0 z-30 mt-2 grid w-56 gap-1 rounded-2xl border border-line bg-paper p-2 shadow-xl">
+                      <div className="absolute left-0 z-30 mt-2 grid w-56 gap-1 sm:left-auto sm:right-0 rounded-2xl border border-line bg-paper p-2 shadow-xl">
                         <ReportDialog profileId={id} label="Report this member" buttonClassName="rounded-lg px-3 py-2.5 text-left font-bold text-flag hover:bg-surface" />
                         <form action={blockMember}>
                           <input type="hidden" name="back" value="/" />
