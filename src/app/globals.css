@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-atkinson), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #13286b;
+  --color-ink-soft: #2b3f86;
+  --color-paper: #ffffff;
+  --color-surface: #f2f4f9;
+  --color-line: #d9deea;
+  --color-muted: #55607f;
+  --color-sun: #f6c343;
+  --color-sun-soft: #fff3cf;
+  --color-flag: #b50f28;
+  --color-flag-soft: #fdecee;
+  --color-leaf: #1e6b45;
+  --color-leaf-soft: #e6f4ec;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  line-height: 1.55;
+}
+
+/* Jeepney-sign headline: heavy and wide. Used sparingly. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 850;
+  font-stretch: 125%;
+  letter-spacing: -0.015em;
+  line-height: 0.95;
+}
+
+.heading {
+  font-family: var(--font-display);
+  font-weight: 750;
+  font-stretch: 110%;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-sun);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@layer components {
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 999px;
+    font-weight: 700;
+    line-height: 1.2;
+    border: 2px solid transparent;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--color-ink);
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: var(--color-ink-soft);
+  }
+  .btn-sun {
+    background: var(--color-sun);
+    color: var(--color-ink);
+  }
+  .btn-sun:hover {
+    background: #ffd463;
+  }
+  .btn-quiet {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    border-color: var(--color-line);
+  }
+  .btn-quiet:hover {
+    border-color: var(--color-ink);
+  }
+  .btn-danger {
+    background: var(--color-paper);
+    color: var(--color-flag);
+    border-color: #f2c3ca;
+  }
+  .btn-danger:hover {
+    border-color: var(--color-flag);
+  }
+  .btn-small {
+    min-height: 2.25rem;
+    padding: 0.3rem 0.85rem;
+    font-size: 0.9375rem;
+  }
+
+  .field {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .field-label {
+    font-weight: 700;
+  }
+  .field-hint {
+    color: var(--color-muted);
+    font-size: 0.9375rem;
+  }
+  .input {
+    width: 100%;
+    min-height: 2.875rem;
+    padding: 0.55rem 0.8rem;
+    border: 2px solid var(--color-line);
+    border-radius: 0.6rem;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font: inherit;
+  }
+  .input:focus {
+    border-color: var(--color-ink);
+    outline: none;
+  }
+  textarea.input {
+    min-height: 8rem;
+    resize: vertical;
+  }
+
+  .panel {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: 1rem;
+  }
+
+  .prose-plain h2 {
+    font-family: var(--font-display);
+    font-weight: 750;
+    font-stretch: 110%;
+    font-size: 1.35rem;
+    margin: 2rem 0 0.5rem;
+  }
+  .prose-plain p,
+  .prose-plain li {
+    max-width: 68ch;
+  }
+  .prose-plain p + p {
+    margin-top: 0.85rem;
+  }
+  .prose-plain ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+  }
+  .prose-plain a {
+    text-decoration: underline;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sun-turn {
+    animation: sun-turn 1.2s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  @keyframes sun-turn {
+    from {
+      transform: rotate(-25deg) scale(0.9);
+      opacity: 0;
+    }
+    /* No opacity here, so the element's own opacity applies at the end. */
+    to {
+      transform: rotate(0) scale(1);
+    }
+  }
+}

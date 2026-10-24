@@ -1,0 +1,312 @@
+-- Trust & safety tests for SPEC.md. Run with: npm run test:db
+\set ON_ERROR_STOP 1
+
+create schema t;
+grant usage on schema t to anon, authenticated;
+
+create function t.ok(p_cond boolean, p_label text) returns void language plpgsql as $$
+begin
+  if p_cond is not true then
+    raise exception 'TEST FAILED: %', p_label;
+  end if;
+  raise notice 'ok - %', p_label;
+end $$;
+
+create function t.expect_error(p_sql text, p_pattern text, p_label text) returns void language plpgsql as $$
+begin
+  execute p_sql;
+  raise exception 'TEST FAILED: % (no error)', p_label;
+exception when others then
+  if sqlerrm like 'TEST FAILED%' then raise; end if;
+  if sqlerrm !~* p_pattern then
+    raise exception 'TEST FAILED: % (got "%")', p_label, sqlerrm;
+  end if;
+  raise notice 'ok - %', p_label;
+end $$;
+grant execute on all functions in schema t to anon, authenticated;
+
+-- Users -----------------------------------------------------------------
+-- a = admin, b = member, c/d/e = established members, f = brand-new account
+insert into auth.users (id, email, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-00000000000a', 'a@x.test', '{"display_name":"Ate Admin","rules_agreed":true}'),
+  ('00000000-0000-0000-0000-00000000000b', 'b@x.test', '{"display_name":"Ben","rules_agreed":true,"area":"Juffair"}'),
+  ('00000000-0000-0000-0000-00000000000c', 'c@x.test', '{"display_name":"Cora","rules_agreed":true}'),
+  ('00000000-0000-0000-0000-00000000000d', 'd@x.test', '{"display_name":"Dan","rules_agreed":true}'),
+  ('00000000-0000-0000-0000-00000000000e', 'e@x.test', '{"display_name":"Eli","rules_agreed":true}'),
+  ('00000000-0000-0000-0000-00000000000f', 'f@x.test', '{"display_name":"Fresh","rules_agreed":true}');
+update public.profiles set role = 'admin' where id = '00000000-0000-0000-0000-00000000000a';
+update public.profiles set created_at = now() - interval '30 days' where id <> '00000000-0000-0000-0000-00000000000f';
+
+select t.expect_error(
+  $$insert into auth.users (email, raw_user_meta_data) values ('g@x.test', '{"display_name":"Gus"}')$$,
+  'community rules', 'sign-up without the community checkbox is refused');
+select t.ok((select display_name from public.profiles where id = '00000000-0000-0000-0000-00000000000b') = 'Ben',
+  'profile is created from sign-up data');
+select t.ok(not exists (
+  select 1 from information_schema.columns
+  where table_schema = 'public' and table_name = 'profiles' and column_name ~* 'nation|filipino|ethnic'),
+  'no nationality column is stored');
+
+-- Member: Ben -------------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+
+select t.expect_error($$update public.profiles set role = 'admin' where id = auth.uid()$$,
+  'permission denied', 'member cannot make themselves admin');
+select t.expect_error($$update public.profiles set is_verified = true where id = auth.uid()$$,
+  'permission denied', 'member cannot give themselves the badge');
+select t.expect_error($$update public.profiles set avatar_path = '00000000-0000-0000-0000-00000000000c/x.jpg' where id = auth.uid()$$,
+  'row-level security', 'member cannot point their avatar at someone else''s file');
+
+insert into public.posts (id, author_id, kind, category, title, description, price_type, area)
+values ('10000000-0000-0000-0000-000000000001', auth.uid(), 'listing', 'housing',
+        'Bedspace in Juffair for a lady', 'Clean bedspace near the bus stop, wifi included.', 'negotiable', 'Juffair');
+insert into public.post_contacts (post_id, method, value)
+values ('10000000-0000-0000-0000-000000000001', 'whatsapp', '+97333334444');
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000001') = 'active',
+  'a normal listing goes live');
+
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type, status)
+  values (auth.uid(), 'listing', 'other', 'Sneaky status', 'Trying to set status directly.', 'free', 'active')$$,
+  'permission denied', 'member cannot set status on insert');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type)
+  values ('00000000-0000-0000-0000-00000000000c', 'listing', 'other', 'Posting as Cora', 'Impersonating another member.', 'free')$$,
+  'row-level security', 'member cannot post as someone else');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type)
+  values (auth.uid(), 'listing', 'household', 'Wrong category', 'Listing in a job category.', 'free')$$,
+  'category does not match', 'listing cannot use a job category');
+
+select t.expect_error($$insert into public.posts (author_id, kind, category, job_type, title, description)
+  values (auth.uid(), 'job', 'looking-for-work', 'looking_for_work', 'Need work as cashier', 'Experienced cashier, 5 years.')$$,
+  'job_fields', 'job post needs the "my own post, no fees" confirmation');
+select t.expect_error($$insert into public.posts (author_id, kind, category, job_type, title, description, own_post_confirmed)
+  values (auth.uid(), 'job', 'referral', 'referral', 'My company is hiring', 'Hiring two waiters at our cafe.', true)$$,
+  'referral_needs_link', 'referral needs a link to the official listing');
+select t.expect_error($$insert into public.posts (author_id, kind, category, job_type, title, description, own_post_confirmed)
+  values (auth.uid(), 'job', 'household', 'household', 'Hiring full-time yaya', 'Family in Riffa needs a nanny.', true)$$,
+  'household_needs_sponsorship', 'household hiring must confirm proper sponsorship');
+
+insert into public.posts (id, author_id, kind, category, job_type, title, description, own_post_confirmed)
+values ('10000000-0000-0000-0000-000000000002', auth.uid(), 'job', 'looking-for-work', 'looking_for_work',
+        'Experienced kasambahay looking for work', 'Five years as a housemaid, good with kids.', true);
+insert into public.posts (id, author_id, kind, category, job_type, title, description, own_post_confirmed, reference_url)
+values ('10000000-0000-0000-0000-000000000003', auth.uid(), 'job', 'referral', 'referral',
+        'Cafe hiring, visa processing fee 200 BD', 'Pay the processing fee first then we send the visa.', true, 'https://example.com/job');
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000003') = 'pending_review',
+  'job mentioning visa/processing fee goes to review instead of going live');
+select t.ok((select flagged_terms from public.posts where id = '10000000-0000-0000-0000-000000000003') @> '{processing,visa}',
+  'flagged words are recorded for the moderator');
+select t.expect_error($$insert into public.posts (author_id, kind, category, job_type, title, description, own_post_confirmed)
+  values (auth.uid(), 'job', 'looking-for-work', 'looking_for_work', 'Third job post today', 'One more job post than allowed.', true)$$,
+  'up to 2 active job posts', 'members can have at most 2 active job posts');
+
+select t.expect_error($$update public.posts set status = 'active' where id = '10000000-0000-0000-0000-000000000003'$$,
+  'cannot change', 'member cannot approve their own flagged post');
+update public.posts set status = 'closed' where id = '10000000-0000-0000-0000-000000000001';
+update public.posts set status = 'active' where id = '10000000-0000-0000-0000-000000000001';
+select t.ok(true, 'member can close and re-open their own post');
+
+update public.posts set description = 'Room available. Also offering money transfer to PH, best rate.'
+where id = '10000000-0000-0000-0000-000000000001';
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000001') = 'pending_review',
+  'editing a live post to add a banned service sends it back to review');
+update public.posts set description = 'Clean bedspace near the bus stop, wifi included.'
+where id = '10000000-0000-0000-0000-000000000001';
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000001') = 'pending_review',
+  'removing the words again does not auto-approve it');
+reset role;
+-- Setup only: clear the review so later tests start from a live post.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+update public.posts set status = 'active', notified_at = null where id = '10000000-0000-0000-0000-000000000001';
+
+-- Fresh account limits ------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+insert into public.posts (author_id, kind, category, title, description, price_type)
+select auth.uid(), 'listing', 'other', 'Item number ' || g, 'A perfectly normal item for sale.', 'free'
+from generate_series(1, 3) g;
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type)
+  values (auth.uid(), 'listing', 'other', 'Item number 4', 'One more than a new account may post.', 'free')$$,
+  'first 7 days', 'new accounts are limited to 3 posts in their first week');
+
+-- Visibility --------------------------------------------------------------
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select t.ok((select count(*) from public.posts where id = '10000000-0000-0000-0000-000000000002') = 1,
+  'logged-out visitors can see live posts');
+select t.ok((select count(*) from public.posts where id = '10000000-0000-0000-0000-000000000003') = 0,
+  'logged-out visitors cannot see posts waiting for review');
+select t.expect_error($$select * from public.post_contacts$$, 'permission denied',
+  'logged-out visitors cannot see contact details');
+select t.expect_error($$select public.admin_set_ban('00000000-0000-0000-0000-00000000000b', true, 'test ban')$$,
+  'permission denied', 'logged-out visitors cannot call admin functions');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+set role authenticated;
+select t.ok((select value from public.post_contacts where post_id = '10000000-0000-0000-0000-000000000001') = '+97333334444',
+  'logged-in members can see contact details');
+select t.ok((select count(*) from public.posts where id = '10000000-0000-0000-0000-000000000003') = 0,
+  'other members cannot see posts waiting for review');
+select t.expect_error($$select public.admin_set_ban('00000000-0000-0000-0000-00000000000b', true, 'test ban')$$,
+  'only moderators', 'members cannot ban anyone');
+
+-- Search ------------------------------------------------------------------
+select t.ok(exists (select 1 from public.search_posts('kasambahay') where id = '10000000-0000-0000-0000-000000000002'),
+  'search: "kasambahay" finds the post');
+select t.ok(exists (select 1 from public.search_posts('helper') where id = '10000000-0000-0000-0000-000000000002'),
+  'search: "helper" finds a kasambahay post (synonym)');
+select t.ok(exists (select 1 from public.search_posts('kwarto juffair') where id = '10000000-0000-0000-0000-000000000001'),
+  'search: "kwarto juffair" finds a bedspace post (Filipino synonym + area)');
+select t.ok(exists (select 1 from public.search_posts('bedspce') where id = '10000000-0000-0000-0000-000000000001'),
+  'search: misspelled "bedspce" still finds it');
+select t.ok(not exists (select 1 from public.search_posts('visa') where id = '10000000-0000-0000-0000-000000000003'),
+  'search never returns posts waiting for review');
+select t.ok(exists (select 1 from public.search_posts(null, 'job') where id = '10000000-0000-0000-0000-000000000002')
+  and not exists (select 1 from public.search_posts(null, 'listing') where kind = 'job'),
+  'search: filtering by post type works');
+
+-- Follows, blocks, notifications --------------------------------------------
+insert into public.follows (follower_id, followed_user_id) values (auth.uid(), '00000000-0000-0000-0000-00000000000b');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+set role authenticated;
+insert into public.follows (follower_id, category_slug) values (auth.uid(), 'filipino-food');
+insert into public.follows (follower_id, search_query) values (auth.uid(), 'pasalobong');
+select t.ok((select count(*) from public.follows) = 2, 'members see their own follows');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+select t.ok((select count(*) from public.follows where followed_user_id = auth.uid()) = 0,
+  'follower lists are private (Ben cannot see who follows him)');
+select t.ok(public.my_follower_count() = 1, 'Ben can see his own follower count');
+
+insert into public.posts (id, author_id, kind, category, title, description, price_type, price_bhd)
+values ('10000000-0000-0000-0000-000000000004', auth.uid(), 'listing', 'filipino-food',
+        'Fresh pasalubong from Cebu', 'Dried mangoes and otap, just arrived.', 'fixed', 2.500);
+reset role;
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000c' and post_id = '10000000-0000-0000-0000-000000000004') = 'followed_member',
+  'followers of a member are notified of new posts');
+select t.ok((select count(*) from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000d' and post_id = '10000000-0000-0000-0000-000000000004') = 1,
+  'a member following both the category and a matching search gets one notification, not two');
+delete from public.follows where follower_id = '00000000-0000-0000-0000-00000000000d' and category_slug is not null;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+insert into public.posts (id, author_id, kind, category, title, description, price_type)
+values ('10000000-0000-0000-0000-000000000005', auth.uid(), 'listing', 'filipino-food',
+        'Homemade pasalubong boxes', 'Polvoron and pastillas, order by Friday.', 'negotiable');
+reset role;
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000d' and post_id = '10000000-0000-0000-0000-000000000005') = 'saved_search',
+  'a misspelled saved search ("pasalobong") still matches new posts');
+select t.ok(not exists (select 1 from public.notifications where post_id = '10000000-0000-0000-0000-000000000003'),
+  'posts waiting for review notify nobody');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+insert into public.blocks (blocker_id, blocked_id) values (auth.uid(), '00000000-0000-0000-0000-00000000000c');
+reset role;
+select t.ok(not exists (select 1 from public.follows where follower_id = '00000000-0000-0000-0000-00000000000c'
+                        and followed_user_id = '00000000-0000-0000-0000-00000000000b'),
+  'blocking removes the blocked member''s follow');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+set role authenticated;
+select t.expect_error($$insert into public.follows (follower_id, followed_user_id) values (auth.uid(), '00000000-0000-0000-0000-00000000000b')$$,
+  'cannot follow', 'a blocked member cannot follow again');
+select t.ok((select count(*) from public.posts where author_id = '00000000-0000-0000-0000-00000000000b') = 0,
+  'a blocked member cannot see the blocker''s posts while logged in');
+select t.expect_error($$update public.follows set followed_user_id = '00000000-0000-0000-0000-00000000000b'$$,
+  'permission denied', 'follows cannot be edited to dodge the block check');
+reset role;
+
+-- Reports -----------------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+select t.expect_error($$insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'spam')$$,
+  'own post', 'members cannot report their own post');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+set role authenticated;
+select t.expect_error($$insert into public.reports (reporter_id, profile_id, reason) values (auth.uid(), '00000000-0000-0000-0000-00000000000b', 'not_community')$$,
+  'reports_check', '"Not part of the community" needs an explanation');
+select t.expect_error($$insert into public.reports (reporter_id, post_id, reason, status) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'spam', 'dismissed')$$,
+  'permission denied', 'reporters cannot set a report''s status');
+insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'scam');
+select t.expect_error($$insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'spam')$$,
+  'duplicate', 'the same member cannot report a post twice');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'scam');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+set role authenticated;
+insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'scam');
+reset role;
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000004') = 'active',
+  'reports from brand-new accounts do not count toward auto-hide');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'scam');
+reset role;
+select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000004') = 'hidden',
+  'a post reported by 3 established members is hidden automatically');
+
+-- Admin -------------------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select public.admin_set_post_status('10000000-0000-0000-0000-000000000004', 'active', 'Checked, legit seller');
+select t.ok((select count(*) from public.reports where post_id = '10000000-0000-0000-0000-000000000004' and status = 'open') = 0,
+  'restoring a hidden post dismisses its open reports');
+select public.admin_set_post_status('10000000-0000-0000-0000-000000000003', 'removed', 'Charging a fee');
+select t.ok((select count(*) from public.admin_actions) = 2, 'every admin action is logged');
+
+select public.admin_set_ban('00000000-0000-0000-0000-00000000000e', true, 'Scam posts');
+reset role;
+select t.ok((select banned_until from auth.users where id = '00000000-0000-0000-0000-00000000000e') = 'infinity',
+  'banning blocks future logins');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+set role authenticated;
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type)
+  values (auth.uid(), 'listing', 'other', 'Posting while banned', 'Should not be allowed at all.', 'free')$$,
+  'row-level security|banned', 'banned members cannot post');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select t.expect_error($$select public.admin_set_ban('00000000-0000-0000-0000-00000000000a', true, 'oops self')$$,
+  'yourself', 'admins cannot ban themselves');
+reset role;
+
+-- Verified Kabayan ----------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+select t.expect_error($$insert into public.verification_requests (user_id, social_url, status) values (auth.uid(), 'https://facebook.com/ben', 'approved')$$,
+  'permission denied', 'members cannot approve their own verification');
+select t.expect_error($$insert into public.verification_requests (user_id, social_url, ph_mobile) values (auth.uid(), 'https://facebook.com/ben', '09171234567')$$,
+  'check constraint', 'PH mobile must be in +639XXXXXXXXX format');
+insert into public.verification_requests (user_id, social_url, ph_mobile) values (auth.uid(), 'https://facebook.com/ben', '+639171234567');
+select t.ok((select code from public.verification_requests where user_id = auth.uid()) ~ '^KABAYAN-[0-9A-F]{6}$',
+  'a one-time code is generated for the profile bio');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select public.admin_review_verification(
+  (select id from public.verification_requests where user_id = '00000000-0000-0000-0000-00000000000b'), true, 'Code found in bio');
+select t.ok((select is_verified from public.profiles where id = '00000000-0000-0000-0000-00000000000b'),
+  'admin approval gives the Verified Kabayan badge');
+reset role;
+
+-- Account deletion ----------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+set role authenticated;
+select public.delete_my_account();
+reset role;
+select t.ok(not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000d')
+  and not exists (select 1 from public.follows where follower_id = '00000000-0000-0000-0000-00000000000d'),
+  'deleting an account removes the profile and everything linked to it');
