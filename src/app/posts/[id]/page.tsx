@@ -54,7 +54,7 @@ export default async function PostPage({ params }: Params) {
   const jobType = JOB_TYPES.find((j) => j.value === post.job_type);
 
   return (
-    <article className="mx-auto grid max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[1fr_20rem]">
+    <article className="mx-auto grid max-w-7xl gap-8 px-4 lg:px-8 py-8 lg:grid-cols-[1fr_22rem]">
       <div className="min-w-0">
         <p className="text-[0.9375rem] text-muted">
           <Link href={post.kind === "job" ? "/jobs" : "/marketplace"} className="underline">
@@ -86,7 +86,7 @@ export default async function PostPage({ params }: Params) {
         </p>
 
         {post.photos.length > 0 && (
-          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          <div className="mt-6 grid max-w-4xl gap-2 sm:grid-cols-2">
             {post.photos.map((photo, i) => (
               <a key={photo.path} href={mediaUrl(photo.path)} target="_blank" rel="noreferrer" className={`relative block overflow-hidden rounded-xl bg-paper ${i === 0 ? "aspect-[4/3] sm:col-span-2" : "aspect-square"}`}>
                 <Image src={mediaUrl(photo.path)} alt={`Photo ${i + 1} of ${post.photos.length}`} fill sizes="(min-width: 1024px) 40rem, 100vw" className="object-cover" priority={i === 0} />
@@ -95,7 +95,7 @@ export default async function PostPage({ params }: Params) {
           </div>
         )}
 
-        <div className="mt-6 whitespace-pre-line break-words text-lg leading-relaxed">{post.description}</div>
+        <div className="mt-6 max-w-[70ch] whitespace-pre-line break-words text-lg leading-relaxed">{post.description}</div>
 
         {post.reference_url && (
           <p className="mt-4">

@@ -18,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const viewer = await getViewer();
   if (!viewer?.isStaff) notFound();
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 lg:px-8 py-8">
       <h1 className="display text-3xl">Moderation</h1>
       <nav aria-label="Admin" className="mt-4 flex gap-2 overflow-x-auto pb-2">
         {TABS.map(([href, label]) => (

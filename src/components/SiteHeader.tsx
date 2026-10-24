@@ -17,7 +17,7 @@ export async function SiteHeader() {
 
   return (
     <header className="bg-ink text-white">
-      <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 lg:px-8 py-3">
         <Link href="/" className="flex items-center gap-2 no-underline" aria-label="PinoyBH home">
           <Sun className="h-7 w-7 text-sun" />
           <span className="display text-2xl">PinoyBH</span>

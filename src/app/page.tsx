@@ -18,7 +18,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-ink text-white">
         {/* On phones the sun sits behind the text, so it is a tonal blue there to keep the white text readable. */}
         <Sun className="sun-turn pointer-events-none absolute -right-28 -top-24 h-[22rem] w-[22rem] text-ink-soft sm:-right-10 sm:-top-20 sm:h-[30rem] sm:w-[30rem] sm:text-sun" />
-        <div className="relative mx-auto max-w-5xl px-4 pb-12 pt-12 sm:pb-16 sm:pt-16">
+        <div className="relative mx-auto max-w-7xl px-4 lg:px-8 pb-12 pt-12 sm:pb-16 sm:pt-16">
           <h1 className="display max-w-[11ch] text-[3.25rem] sm:text-[5.5rem]">
             Mabuhay, Kabayan!
           </h1>
@@ -48,8 +48,8 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <div className="mx-auto max-w-5xl px-4">
-        <nav aria-label="Popular categories" className="relative z-10 -mt-6 flex gap-2 overflow-x-auto px-1 pb-2 pt-1">
+      <div className="mx-auto max-w-7xl px-4 lg:px-8">
+        <nav aria-label="Popular categories" className="relative z-10 -mt-6 flex gap-2 overflow-x-auto px-1 pb-2 pt-1 sm:flex-wrap sm:overflow-visible">
           {categories.slice(5, 9).concat(categories.slice(0, 2)).map((c) => (
             <Link key={c.slug} href={`/marketplace?category=${c.slug}`} className="btn btn-quiet btn-small shadow-sm">
               {c.name}

@@ -54,7 +54,7 @@ export async function Browse({ kind, filters, basePath }: { kind: PostKind; filt
   const categoryName = categories.find((c) => c.slug === filters.category)?.name;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-7xl px-4 lg:px-8 py-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="display text-4xl sm:text-5xl">{copy.title}</h1>
@@ -97,7 +97,7 @@ export async function Browse({ kind, filters, basePath }: { kind: PostKind; filt
         </div>
       </form>
 
-      <nav aria-label="Categories" className="mt-4 flex gap-2 overflow-x-auto pb-2">
+      <nav aria-label="Categories" className="mt-4 flex gap-2 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
         <Link href={basePath} className={`btn btn-small ${!filters.category ? "btn-primary" : "btn-quiet"}`}>All</Link>
         {categories.map((c) => (
           <Link
@@ -139,6 +139,7 @@ export async function Browse({ kind, filters, basePath }: { kind: PostKind; filt
 
       <section className="mt-6" aria-label="Results">
         <PostList
+          wide
           posts={posts}
           empty={
             <>

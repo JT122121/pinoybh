@@ -12,7 +12,7 @@ export function PostRow({ post, showStatus = false }: { post: PostWithExtras; sh
   const jobLabel = post.job_type ? JOB_TYPES.find((j) => j.value === post.job_type)?.label : null;
 
   return (
-    <li className="border-b border-line last:border-b-0">
+    <li className="border-b border-r border-line">
       <Link href={`/posts/${post.id}`} className="flex gap-4 px-4 py-4 hover:bg-surface">
         <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-surface sm:h-24 sm:w-24">
           {photo ? (
@@ -41,13 +41,27 @@ export function PostRow({ post, showStatus = false }: { post: PostWithExtras; sh
   );
 }
 
-export function PostList({ posts, empty, showStatus }: { posts: PostWithExtras[]; empty: React.ReactNode; showStatus?: boolean }) {
+export function PostList({
+  posts,
+  empty,
+  showStatus,
+  wide = false,
+}: {
+  posts: PostWithExtras[];
+  empty: React.ReactNode;
+  showStatus?: boolean;
+  /** Use more columns on wide screens (browse pages). */
+  wide?: boolean;
+}) {
   if (posts.length === 0) return <div className="panel px-4 py-8 text-center">{empty}</div>;
   return (
-    <ul className="panel overflow-hidden">
-      {posts.map((p) => (
-        <PostRow key={p.id} post={p} showStatus={showStatus} />
-      ))}
-    </ul>
+    <div className="panel overflow-hidden">
+      {/* Negative margins tuck each row's outer right/bottom border under the panel edge. */}
+      <ul className={`-mb-px -mr-px grid ${wide ? "lg:grid-cols-2 2xl:grid-cols-3" : ""}`}>
+        {posts.map((p) => (
+          <PostRow key={p.id} post={p} showStatus={showStatus} />
+        ))}
+      </ul>
+    </div>
   );
 }
