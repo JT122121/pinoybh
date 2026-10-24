@@ -379,6 +379,33 @@ select t.expect_error($$insert into public.comments (post_id, author_id, body)
   'permission denied', 'comments: logged-out visitors cannot comment');
 reset role;
 
+-- Everyone in the conversation is notified ("also commented"), unless they muted the post.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+insert into public.comments (id, post_id, author_id, body)
+values ('20000000-0000-0000-0000-000000000005', '10000000-0000-0000-0000-000000000005', auth.uid(), 'Looks delicious, how many pieces per box?');
+reset role;
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000f' and comment_id = '20000000-0000-0000-0000-000000000005') = 'also_commented',
+  'comments: earlier commenters are notified of new comments ("also commented")');
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000b' and comment_id = '20000000-0000-0000-0000-000000000005') = 'comment',
+  'comments: the post owner gets one notification, as the owner (not twice)');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+insert into public.post_mutes (user_id, post_id) values (auth.uid(), '10000000-0000-0000-0000-000000000005');
+select t.expect_error($$insert into public.post_mutes (user_id, post_id) values ('00000000-0000-0000-0000-00000000000b', '10000000-0000-0000-0000-000000000005')$$,
+  'row-level security', 'comments: members cannot mute posts for someone else');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+insert into public.comments (id, post_id, author_id, body)
+values ('20000000-0000-0000-0000-000000000006', '10000000-0000-0000-0000-000000000005', auth.uid(), 'Also, do you deliver to Riffa?');
+reset role;
+select t.ok(not exists (select 1 from public.notifications
+                        where user_id = '00000000-0000-0000-0000-00000000000f' and comment_id = '20000000-0000-0000-0000-000000000006'),
+  'comments: a member who turned off notifications for a post gets none');
+
 -- Cora was blocked by Ben earlier.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 set role authenticated;

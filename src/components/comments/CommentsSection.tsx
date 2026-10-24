@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { setPostMuted } from "@/app/actions/comments";
+import { SubmitButton } from "@/components/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
 import type { Comment, Post } from "@/lib/types";
 import type { Viewer } from "@/lib/viewer";
@@ -23,11 +25,31 @@ export async function CommentsSection({ post, viewer }: { post: Post; viewer: Vi
   const canReply = Boolean(viewer) && open;
   const v = viewer ? { id: viewer.userId, isStaff: viewer.isStaff } : null;
 
+  // The mute button is for people who get notified about this post: its
+  // owner and anyone who has commented on it.
+  const involved = Boolean(viewer && (viewer.userId === post.author_id || comments.some((c) => c.author_id === viewer.userId)));
+  let muted = false;
+  if (viewer && involved) {
+    const { data: mute } = await supabase.from("post_mutes").select("post_id").eq("post_id", post.id).maybeSingle();
+    muted = Boolean(mute);
+  }
+
   return (
     <section id="comments" aria-labelledby="comments-title" className="panel scroll-mt-24 p-4 sm:p-5 lg:col-start-1">
-      <h2 id="comments-title" className="heading text-xl">
-        {comments.length ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : "Comments"}
-      </h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id="comments-title" className="heading text-xl">
+          {comments.length ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : "Comments"}
+        </h2>
+        {involved && (
+          <form action={setPostMuted}>
+            <input type="hidden" name="post_id" value={post.id} />
+            <input type="hidden" name="muted" value={muted ? "false" : "true"} />
+            <SubmitButton className="btn btn-quiet btn-small" pendingText="Saving...">
+              {muted ? "Turn on notifications for this post" : "Turn off notifications for this post"}
+            </SubmitButton>
+          </form>
+        )}
+      </div>
 
       <div className="mt-4">
         {!open ? (

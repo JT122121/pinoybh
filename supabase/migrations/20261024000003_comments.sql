@@ -198,7 +198,15 @@ $$;
 alter table public.notifications add column comment_id uuid references public.comments (id) on delete cascade;
 alter table public.notifications drop constraint notifications_reason_check;
 alter table public.notifications add constraint notifications_reason_check
-  check (reason in ('followed_member', 'followed_category', 'saved_search', 'comment', 'reply'));
+  check (reason in ('followed_member', 'followed_category', 'saved_search', 'comment', 'reply', 'also_commented'));
+
+-- "Turn off notifications for this post."
+create table public.post_mutes (
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  post_id uuid not null references public.posts (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (user_id, post_id)
+);
 -- One "new post" notification per post, but any number of comment ones.
 alter table public.notifications drop constraint notifications_user_id_post_id_key;
 create unique index notifications_post_once on public.notifications (user_id, post_id) where comment_id is null;
@@ -248,7 +256,12 @@ end;
 $$;
 
 -- When a comment goes live (immediately, or after a moderator approves it),
--- tell the post owner, and the person being replied to.
+-- notify, like Facebook:
+--   reply           the person being replied to
+--   comment         the post's owner
+--   also_commented  everyone else who has commented on the post
+-- Each person gets one notification per comment (the most specific reason),
+-- and nobody who muted the post, blocked or was blocked by the commenter.
 create or replace function public.notify_comment()
 returns trigger
 language plpgsql security definer set search_path = ''
@@ -266,15 +279,25 @@ begin
   end if;
 
   insert into public.notifications (user_id, post_id, comment_id, reason)
-  select t.user_id, new.post_id, new.id, t.reason
-  from (values (v_parent_author, 'reply'), (v_post_author, 'comment')) as t (user_id, reason)
+  select distinct on (t.user_id) t.user_id, new.post_id, new.id, t.reason
+  from (
+    select v_parent_author as user_id, 'reply' as reason, 1 as priority
+    union all
+    select v_post_author, 'comment', 2
+    union all
+    select c.author_id, 'also_commented', 3
+    from public.comments c
+    where c.post_id = new.post_id and c.status = 'active' and c.id <> new.id
+  ) t
   join public.profiles p on p.id = t.user_id and not p.is_banned
   where t.user_id is not null and t.user_id <> new.author_id
+    and not exists (select 1 from public.post_mutes m where m.user_id = t.user_id and m.post_id = new.post_id)
     and not exists (
       select 1 from public.blocks b
       where (b.blocker_id = t.user_id and b.blocked_id = new.author_id)
          or (b.blocker_id = new.author_id and b.blocked_id = t.user_id)
     )
+  order by t.user_id, t.priority
   on conflict (user_id, comment_id) where comment_id is not null do nothing;
 
   update public.comments set notified_at = now() where id = new.id;
@@ -374,6 +397,12 @@ $$;
 -- ---------------------------------------------------------------------------
 
 alter table public.comments enable row level security;
+alter table public.post_mutes enable row level security;
+
+create policy post_mutes_own on public.post_mutes for all to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+revoke all on public.post_mutes from anon, authenticated;
+grant select, insert, delete on public.post_mutes to authenticated;
 
 -- Anyone can read live comments on posts they can see. Authors see their
 -- own comments waiting for review; staff see everything.

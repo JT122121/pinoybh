@@ -60,3 +60,19 @@ export async function deleteComment(formData: FormData) {
   await supabase.from("comments").delete().eq("id", id);
   revalidatePath(`/posts/${postId}`);
 }
+
+/** "Turn off / on notifications for this post." */
+export async function setPostMuted(formData: FormData) {
+  const viewer = await getViewer();
+  if (!viewer) return;
+  const postId = String(formData.get("post_id") ?? "");
+  if (!UUID.test(postId)) return;
+  const supabase = await createClient();
+  if (formData.get("muted") === "true") {
+    // Plain insert: members can't update mutes, and a duplicate just means it's already off.
+    await supabase.from("post_mutes").insert({ user_id: viewer.userId, post_id: postId });
+  } else {
+    await supabase.from("post_mutes").delete().eq("user_id", viewer.userId).eq("post_id", postId);
+  }
+  revalidatePath(`/posts/${postId}`);
+}

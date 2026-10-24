@@ -13,6 +13,7 @@ const REASON: Record<string, string> = {
   saved_search: "Matches a search you follow",
   comment: "New comment on your post",
   reply: "Replied to your comment",
+  also_commented: "New comment on a post you commented on",
 };
 
 export default async function NotificationsPage() {
