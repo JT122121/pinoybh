@@ -11,6 +11,7 @@ import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import { ProfileForm } from "./ProfileForm";
 import { VerificationForm } from "./VerificationForm";
+import { VerificationSteps } from "./VerificationSteps";
 
 export const metadata = { title: "My account" };
 
@@ -28,7 +29,7 @@ export default async function AccountPage() {
   const supabase = await createClient();
   const [{ data: posts }, { data: requests }, { data: blocks }, { data: followers }] = await Promise.all([
     supabase.from("posts").select(POST_SELECT).eq("author_id", viewer.userId).order("created_at", { ascending: false }),
-    supabase.from("verification_requests").select("status, code, admin_note, created_at").eq("user_id", viewer.userId).order("created_at", { ascending: false }).limit(1),
+    supabase.from("verification_requests").select("status, code, social_url, admin_note, created_at").eq("user_id", viewer.userId).order("created_at", { ascending: false }).limit(1),
     supabase.from("blocks").select("blocked_id, blocked:profiles!blocks_blocked_id_fkey(display_name)").eq("blocker_id", viewer.userId),
     supabase.rpc("my_follower_count"),
   ]);
@@ -71,11 +72,7 @@ export default async function AccountPage() {
         {viewer.profile.is_verified ? (
           <VerifiedBadge size="large" />
         ) : latest?.status === "pending" ? (
-          <div className="grid gap-3">
-            <p>Your request is waiting for a moderator. To prove the profile is yours, add this code to your profile bio or intro:</p>
-            <p className="display w-fit rounded-xl bg-sun-soft px-4 py-3 text-2xl">{latest.code}</p>
-            <p className="text-muted">You can remove the code after you get the badge.</p>
-          </div>
+          <VerificationSteps code={latest.code} socialUrl={latest.social_url} />
         ) : (
           <div className="grid gap-4">
             <p>

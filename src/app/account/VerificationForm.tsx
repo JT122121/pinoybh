@@ -11,6 +11,10 @@ export function VerificationForm() {
     <form action={action} className="grid gap-4">
       <label className="field">
         <span className="field-label">Link to your Facebook, Instagram or other public profile</span>
+        <span className="field-hint">
+          On Facebook or Instagram: open your profile, tap the ⋯ or Share profile button, then Copy link, and paste it here.
+          Next, we&rsquo;ll give you a short code to put in your bio.
+        </span>
         <input name="social_url" type="url" required className="input" placeholder="https://facebook.com/your.name" />
       </label>
       <label className="field">
