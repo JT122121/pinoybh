@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { COMMUNITY_STATEMENT } from "@/lib/constants";
+import { COMMUNITY_STATEMENT, SHOW_PRIVACY } from "@/lib/constants";
 
 export function SiteFooter() {
   return (
@@ -10,7 +10,7 @@ export function SiteFooter() {
           <Link href="/about">About</Link>
           <Link href="/rules">Community rules</Link>
           <Link href="/safety">Stay safe</Link>
-          <Link href="/privacy">Privacy Policy</Link>
+          {SHOW_PRIVACY && <Link href="/privacy">Privacy Policy</Link>}
         </nav>
       </div>
     </footer>

@@ -6,7 +6,7 @@ import { signUp } from "@/app/actions/auth";
 import { FormMessage } from "@/components/FormMessage";
 import { SubmitButton } from "@/components/SubmitButton";
 import { Captcha } from "@/components/Captcha";
-import { AREAS, COMMUNITY_CHECKBOX } from "@/lib/constants";
+import { AREAS, COMMUNITY_CHECKBOX, SHOW_PRIVACY } from "@/lib/constants";
 
 export function SignupForm() {
   const [state, action] = useActionState(signUp, {});
@@ -46,10 +46,12 @@ export function SignupForm() {
       </label>
       <Captcha resetKey={state} />
       <SubmitButton pendingText="Creating your account...">Create my account</SubmitButton>
-      <p className="text-center text-sm text-muted">
-        See how we handle your information in our{" "}
-        <Link href="/privacy" target="_blank" className="underline">Privacy Policy</Link>.
-      </p>
+      {SHOW_PRIVACY && (
+        <p className="text-center text-sm text-muted">
+          See how we handle your information in our{" "}
+          <Link href="/privacy" target="_blank" className="underline">Privacy Policy</Link>.
+        </p>
+      )}
       <p className="text-center text-[0.9375rem]">
         Already a member? <Link href="/login" className="font-bold underline">Log in</Link>
       </p>

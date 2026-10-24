@@ -1,5 +1,8 @@
 import type { ContactMethod, JobType, PostStatus, ReportReason } from "./types";
 
+/** The Privacy Policy is hidden for now: no links, and /privacy shows "not found". Set to true to bring it back. */
+export const SHOW_PRIVACY = false;
+
 export const COMMUNITY_STATEMENT = "A community marketplace, job board and events page for Filipinos in Bahrain.";
 
 export const COMMUNITY_CHECKBOX =

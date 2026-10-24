@@ -50,7 +50,7 @@ CI runs all three on every push.
 These block launch, not building:
 
 1. **Legal review** of the job and marketplace rules (SPEC.md sections 6, 7 and 14) by a Bahrain lawyer or LMRA, especially household hiring and the ban on side gigs.
-2. **Privacy Policy** (`/privacy`) checked against Bahrain's PDPL (Law No. 30 of 2018). It's marked as a draft on the page.
+2. **Privacy Policy** (`/privacy`) checked against Bahrain's PDPL (Law No. 30 of 2018), then switched back on: it is hidden for now (`SHOW_PRIVACY` in `src/lib/constants.ts`).
 3. **Supabase paid plan** (about $25/month). Free projects pause after a week without traffic.
 4. **CAPTCHA** on sign-up, login and password reset (step 6 above).
 5. **Custom SMTP** so confirmation and password emails reach members (step 2 above).

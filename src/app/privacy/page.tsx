@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { TextPage } from "@/components/TextPage";
+import { SHOW_PRIVACY } from "@/lib/constants";
 
-export const metadata = {
-  title: "Privacy Policy",
-  description: "How PinoyBH collects, uses and protects your personal information.",
-};
+export const metadata = SHOW_PRIVACY
+  ? { title: "Privacy Policy", description: "How PinoyBH collects, uses and protects your personal information." }
+  : { title: "Page not found" };
 
 const UPDATED = "24 October 2026";
 
@@ -18,6 +19,7 @@ function Contact() {
 }
 
 export default function PrivacyPage() {
+  if (!SHOW_PRIVACY) notFound();
   const operator = process.env.NEXT_PUBLIC_OPERATOR_NAME;
   return (
     <TextPage
