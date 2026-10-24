@@ -49,6 +49,9 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (error) {
     if (isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
     if (/already registered/i.test(error.message)) return { error: "That email already has an account. Try logging in." };
+    if (error.status === 429 || /rate limit/i.test(error.message)) {
+      return { error: "Too many people are signing up right now. Please try again in an hour." };
+    }
     return { error: "We could not create your account. Check your email address and try again." };
   }
   // Projects with email confirmation off get a session straight away.
@@ -79,6 +82,9 @@ export async function requestPasswordReset(_prev: FormState, formData: FormData)
     captchaToken: captchaToken(formData),
   });
   if (error && isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
+  if (error && (error.status === 429 || /rate limit/i.test(error.message))) {
+    return { error: "We can't send more emails right now. Please try again in an hour." };
+  }
   // Same answer either way, so nobody can check which emails have accounts.
   return { success: "If that email has an account, we sent a link to reset your password." };
 }
