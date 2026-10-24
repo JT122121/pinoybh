@@ -30,8 +30,21 @@ export function mediaUrl(path: string): string {
   return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/media/${path}`;
 }
 
+/**
+ * A phone number in international form so WhatsApp and calls work:
+ * "3312 3456" becomes "+97333123456", "0917 123 4567" becomes "+639171234567",
+ * "00..." becomes "+...". Returns the cleaned text if it doesn't look like a number.
+ */
+export function normalizePhone(raw: string): string {
+  const digits = raw.replace(/[\s().-]/g, "").replace(/^00/, "+");
+  if (/^[136]\d{7}$/.test(digits)) return `+973${digits}`;
+  if (/^09\d{9}$/.test(digits)) return `+63${digits.slice(1)}`;
+  if (/^\d{9,15}$/.test(digits)) return `+${digits}`;
+  return digits;
+}
+
 export function whatsappLink(value: string): string {
-  return `https://wa.me/${value.replace(/[^\d]/g, "")}`;
+  return `https://wa.me/${normalizePhone(value).replace(/[^\d]/g, "")}`;
 }
 
 /** Returns a same-site path, or the fallback. Stops open redirects via ?next=. */

@@ -26,6 +26,7 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
   const [kind, setKind] = useState<PostKind>(post?.kind ?? initialKind);
   const [jobType, setJobType] = useState<JobType | "">(post?.job_type ?? "");
   const [priceType, setPriceType] = useState<PriceType>(post?.price_type ?? "fixed");
+  const [contactMethod, setContactMethod] = useState<ContactMethod>(existing?.contact?.method ?? "whatsapp");
   const eventStart = toBahrainInputs(post?.event_starts_at ?? null);
   const eventEnd = toBahrainInputs(post?.event_ends_at ?? null);
 
@@ -200,13 +201,29 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
         <legend className="field-label">How should people contact you?</legend>
         <p className="field-hint">Only logged-in members can see this, never visitors or search engines.</p>
         <div className="grid gap-2 sm:grid-cols-[12rem_1fr]">
-          <select name="contact_method" className="input" defaultValue={existing?.contact?.method ?? "whatsapp"} aria-label="Contact method">
+          <select
+            name="contact_method"
+            className="input"
+            value={contactMethod}
+            onChange={(e) => setContactMethod(e.target.value as ContactMethod)}
+            aria-label="Contact method"
+          >
             {CONTACT_METHODS.map((m) => (
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
-          <input name="contact_value" className="input" maxLength={100} placeholder="+973 3xxx xxxx" defaultValue={existing?.contact?.value} aria-label="Number or email" />
+          {contactMethod === "email" ? (
+            <input key="email" name="contact_value" type="email" inputMode="email" autoComplete="email" className="input" maxLength={100}
+              placeholder="name@gmail.com" defaultValue={existing?.contact?.method === "email" ? existing.contact.value : ""} aria-label="Email address" />
+          ) : (
+            <input key="phone" name="contact_value" type="tel" inputMode="tel" autoComplete="tel" className="input" maxLength={100}
+              placeholder="+973 3xxx xxxx" defaultValue={existing?.contact?.method !== "email" ? existing?.contact?.value : ""}
+              aria-label={contactMethod === "whatsapp" ? "WhatsApp number" : "Phone number"} />
+          )}
         </div>
+        {contactMethod !== "email" && (
+          <p className="field-hint">A Bahrain number is fine as it is. For a Philippine number, start with +63.</p>
+        )}
       </fieldset>
 
       {kind === "job" && (

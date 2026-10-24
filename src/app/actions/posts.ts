@@ -7,7 +7,7 @@ import { friendlyDbError } from "@/lib/errors";
 import { AREAS, JOB_TYPES, MAX_PHOTOS } from "@/lib/constants";
 import type { ContactMethod, FormState, JobType, PostKind, PriceType } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
-import { fromBahrainInputs } from "@/lib/format";
+import { fromBahrainInputs, normalizePhone } from "@/lib/format";
 import { isPostKind } from "@/lib/kinds";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -32,13 +32,19 @@ function readPost(formData: FormData) {
     reference_url: jobType === "referral" ? text("reference_url") || null : null,
     own_post_confirmed: kind === "job" && formData.get("own_post_confirmed") === "on",
     sponsorship_confirmed: jobType === "household" && formData.get("sponsorship_confirmed") === "on",
-    contact: { method: text("contact_method") as ContactMethod, value: text("contact_value") },
+    contact: contactFrom(text("contact_method") as ContactMethod, text("contact_value")),
     photos: formData.getAll("photo").map(String).slice(0, MAX_PHOTOS),
     event_starts_at: kind === "event" ? fromBahrainInputs(text("event_date"), text("event_start")) : null,
     event_ends_at: kind === "event" && text("event_end") ? endTime(text("event_date"), text("event_start"), text("event_end")) : null,
     venue: kind === "event" ? text("venue").slice(0, 120) || null : null,
     map_url: kind === "event" ? text("map_url") || null : null,
   };
+}
+
+/** Emails are lower-cased; numbers are put in international form (see normalizePhone). */
+function contactFrom(method: ContactMethod, raw: string): { method: ContactMethod; value: string } {
+  if (method === "email") return { method, value: raw.toLowerCase() };
+  return { method, value: raw ? normalizePhone(raw) : "" };
 }
 
 /** End time on the same day, or the next day if it's earlier than the start (e.g. 8 PM to 1 AM). */
@@ -72,6 +78,10 @@ function validate(p: ReturnType<typeof readPost>, userId: string): string | null
   if (p.job_type === "referral" && !/^https?:\/\//i.test(p.reference_url ?? "")) return "Add a link to the official job listing (starting with https://).";
   if (p.job_type === "household" && !p.sponsorship_confirmed) return "Please confirm the job has proper sponsorship.";
   if (p.contact.value && !["whatsapp", "phone", "email"].includes(p.contact.method)) return "Choose how people should contact you.";
+  if (p.contact.value && p.contact.method === "email" && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(p.contact.value))
+    return "Enter a full email address, like name@gmail.com.";
+  if (p.contact.value && p.contact.method !== "email" && !/^\+\d{8,15}$/.test(p.contact.value))
+    return "Enter a phone number with digits only, like +973 3312 3456 or +63 917 123 4567.";
   // Photos must be inside this member's folder for this post.
   const prefix = `${userId}/${p.id}/`;
   if (p.photos.some((path) => !path.startsWith(prefix) || path.includes(".."))) return "One of the photos could not be saved. Remove it and try again.";

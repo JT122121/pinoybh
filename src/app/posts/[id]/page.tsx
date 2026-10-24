@@ -9,7 +9,7 @@ import { EventDetails } from "@/components/EventDetails";
 import { SubmitButton } from "@/components/SubmitButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CONTACT_METHODS, JOB_TYPES, STATUS_LABEL } from "@/lib/constants";
-import { formatEventWhen, formatPrice, mediaUrl, timeAgo, whatsappLink } from "@/lib/format";
+import { formatEventWhen, formatPrice, mediaUrl, normalizePhone, timeAgo, whatsappLink } from "@/lib/format";
 import { configuredSiteUrl } from "@/lib/site";
 import { ShareButtons } from "@/components/ShareButtons";
 import type { Metadata } from "next";
@@ -176,7 +176,7 @@ export default async function PostPage({ params }: Params) {
               {contact.method === "whatsapp" && (
                 <a href={whatsappLink(contact.value)} target="_blank" rel="noreferrer" className="btn btn-primary">WhatsApp {contact.value}</a>
               )}
-              {contact.method === "phone" && <a href={`tel:${contact.value}`} className="btn btn-primary">Call {contact.value}</a>}
+              {contact.method === "phone" && <a href={`tel:${normalizePhone(contact.value)}`} className="btn btn-primary">Call {contact.value}</a>}
               {contact.method === "email" && <a href={`mailto:${contact.value}`} className="btn btn-primary break-all">Email {contact.value}</a>}
               <p className="text-sm text-muted">
                 {CONTACT_METHODS.find((m) => m.value === contact.method)?.label}. Never send money before you see the item or meet the employer.
