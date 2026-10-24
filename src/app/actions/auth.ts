@@ -54,7 +54,7 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   if (error) {
     if (isCaptchaError(error.message)) return { error: CAPTCHA_MESSAGE };
     if (/already registered/i.test(error.message)) return { error: "That email already has an account. Try logging in." };
-    if (isRateLimit(error)) return { error: "Too many people are signing up right now. Please try again in an hour." };
+    if (isRateLimit(error)) return { error: "We can't send any more confirmation emails right now. Please try again in about an hour." };
     return { error: "We could not create your account. Check your email address and try again." };
   }
   // Projects with email confirmation off get a session straight away.
