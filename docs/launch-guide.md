@@ -131,8 +131,8 @@ Tick each line only when the result matches **Expected**.
 | Post a listing with 2 photos taken on your phone | Goes live; photos show; first photo is the thumbnail |
 | Post a job saying "pay the processing fee first" | Shows "Waiting for review"; not visible in Jobs from another account |
 | Edit a live listing to add "money transfer to PH" | Goes back to "Waiting for review" |
-| New account: make a 4th post in its first week | Blocked with a clear message |
-| Have 2 job posts, try a 3rd | Blocked: "You can have up to 2 active job posts" |
+| New account: make a 7th post in its first week | Blocked with a clear message |
+| Have 6 job posts, try a 7th | Blocked: "You can have up to 6 active job posts" |
 | "My company is hiring" without a link | Blocked |
 | "My household is hiring" without ticking sponsorship | Blocked |
 | Add a 7th photo | Not allowed |

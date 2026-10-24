@@ -36,8 +36,8 @@ export const RULES: { title: string; body: string }[] = [
 
 /** Posting limits, shown on /rules#limits. Keep in step with the database rules in supabase/migrations. */
 export const POSTING_LIMITS: { what: string; limit: string }[] = [
-  { what: "New accounts (first 7 days)", limit: "Up to 3 posts in total. Listings, jobs and events all count." },
-  { what: "Job posts", limit: "Up to 2 live at a time. Close one to post another." },
+  { what: "New accounts (first 7 days)", limit: "Up to 6 posts in total. Listings, jobs and events all count." },
+  { what: "Job posts", limit: "Up to 6 live at a time. Close one to post another." },
   { what: "Photos", limit: "Up to 6 per post." },
   { what: "Comments", limit: "Up to 10 an hour in your first 7 days, then up to 60 an hour." },
   { what: "Reports", limit: "Up to 20 a day." },

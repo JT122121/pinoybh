@@ -96,9 +96,14 @@ select t.ok((select status from public.posts where id = '10000000-0000-0000-0000
   'job mentioning visa/processing fee goes to review instead of going live');
 select t.ok((select flagged_terms from public.posts where id = '10000000-0000-0000-0000-000000000003') @> '{processing,visa}',
   'flagged words are recorded for the moderator');
+insert into public.posts (id, author_id, kind, category, job_type, title, description, own_post_confirmed)
+select ('10000000-0000-0000-0000-0000000001' || lpad(g::text, 2, '0'))::uuid, auth.uid(), 'job', 'looking-for-work', 'looking_for_work',
+       'Looking for work number ' || g, 'Driver with a Bahrain licence, ready to start.', true
+from generate_series(1, 4) g;
 select t.expect_error($$insert into public.posts (author_id, kind, category, job_type, title, description, own_post_confirmed)
-  values (auth.uid(), 'job', 'looking-for-work', 'looking_for_work', 'Third job post today', 'One more job post than allowed.', true)$$,
-  'up to 2 active job posts', 'members can have at most 2 active job posts');
+  values (auth.uid(), 'job', 'looking-for-work', 'looking_for_work', 'Seventh job post', 'One more job post than allowed.', true)$$,
+  'up to 6 active job posts', 'members can have at most 6 active job posts');
+delete from public.posts where id::text like '10000000-0000-0000-0000-0000000001%';
 
 select t.expect_error($$update public.posts set status = 'active' where id = '10000000-0000-0000-0000-000000000003'$$,
   'cannot change', 'member cannot approve their own flagged post');
@@ -124,10 +129,10 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f
 set role authenticated;
 insert into public.posts (author_id, kind, category, title, description, price_type)
 select auth.uid(), 'listing', 'other', 'Item number ' || g, 'A perfectly normal item for sale.', 'free'
-from generate_series(1, 3) g;
+from generate_series(1, 6) g;
 select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type)
-  values (auth.uid(), 'listing', 'other', 'Item number 4', 'One more than a new account may post.', 'free')$$,
-  'first 7 days', 'new accounts are limited to 3 posts in their first week');
+  values (auth.uid(), 'listing', 'other', 'Item number 7', 'One more than a new account may post.', 'free')$$,
+  'first 7 days', 'new accounts are limited to 6 posts in their first week');
 
 -- Visibility --------------------------------------------------------------
 reset role;

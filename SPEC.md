@@ -32,7 +32,7 @@ Status: **approved for build** (owner: "best policy"). Items marked **[DEFAULT]*
   "I am a Filipino or part of the Filipino community in Bahrain, and I agree to follow the community rules."
 - Store only `rules_agreed_at` (timestamp). Do **not** store a nationality or "is Filipino" field (Bahrain PDPL, Law 30 of 2018, may treat ethnic origin as sensitive data).
 - Profile: display name, area in Bahrain (e.g. Manama, Juffair, Riffa, Muharraq, Isa Town), optional photo, optional short bio.
-- New-account limits: max 3 posts in the first 7 days; max 2 active job posts per member at any time.
+- New-account limits: max 6 posts in the first 7 days; max 6 active job posts per member at any time.
 - Members can delete their account and all their posts (privacy requirement).
 
 ## 5. Verified Kabayan badge
