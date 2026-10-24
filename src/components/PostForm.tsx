@@ -48,9 +48,9 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
                   if (k === "event") setPriceType("free");
                 }}
                 aria-pressed={kind === k}
-                className={`btn ${kind === k ? "btn-primary" : "btn-quiet"}`}
+                className={`btn whitespace-normal text-center leading-tight ${kind === k ? "btn-primary" : "btn-quiet"}`}
               >
-                {k === "listing" ? "Something to sell or give" : k === "job" ? "A job post" : "An event"}
+                {k === "listing" ? "Sell or give away" : k === "job" ? "Job post" : "Event"}
               </button>
             ))}
           </div>
