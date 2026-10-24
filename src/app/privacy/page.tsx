@@ -65,7 +65,9 @@ export default function PrivacyPage() {
       </p>
       <p>
         <strong>Technical information:</strong> our service providers automatically record IP addresses, browser type and the
-        time of requests, to keep the site working and secure (for example, to stop someone trying many passwords).
+        time of requests, to keep the site working and secure (for example, to stop someone trying many passwords). We also count how many times each page is opened per day, so we know how the site is used. That count is
+        anonymous: it doesn&rsquo;t record who you are, your IP address or your device, and your browser only remembers the date of
+        your last visit.
       </p>
 
       <h2>Why we use it</h2>

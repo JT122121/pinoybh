@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { VisitStats } from "@/components/admin/VisitStats";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AdminHome() {
@@ -34,6 +35,7 @@ export default async function AdminHome() {
         Try to clear reports and the review queue every day. Posts flagged for fees or visas stay hidden until you approve them,
         so a long queue means real members are waiting.
       </p>
+      <VisitStats />
     </div>
   );
 }

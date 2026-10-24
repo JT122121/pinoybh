@@ -12,7 +12,7 @@ Members post for themselves (no businesses, agencies or recruiters): things to s
 
 ```
 supabase/migrations/   database schema, rules and permissions
-supabase/tests/        105 tests for the trust & safety rules (npm run test:db)
+supabase/tests/        115 tests for the trust & safety rules (npm run test:db)
 src/app/               pages and server actions
 src/components/        shared UI
 src/content/rules.ts   the community rules text
@@ -59,6 +59,7 @@ These block launch, not building:
 ## Known limits in v1
 
 - Notifications are in the site only (bell icon). No email yet.
+- The visit counter (Admin > Overview) counts a visit per browser per day. Your own visits count too, and someone can inflate it on purpose. Good for trends, not for exact numbers.
 - Comments block phone numbers, emails and links (anyone can read comments, so contact details belong behind the Contact button). Some honest comments with long numbers, like a 7-digit reference, will be refused.
 - Words like "visa" and "agent" will also flag honest posts ("visa provided by employer"). That's on purpose: a moderator looks before anything about visas goes live. Tune the list under Admin > Search & flag words.
 - A member who uploads photos and then abandons the form leaves those photos in storage.

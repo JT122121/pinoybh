@@ -532,3 +532,43 @@ update public.posts set status = 'active', event_starts_at = now() - interval '1
 alter table public.posts enable trigger posts_enforce_rules;
 select t.ok(not exists (select 1 from public.search_posts(null, 'event') where id = '30000000-0000-0000-0000-000000000001'),
   'events: past events are no longer listed');
+
+-- Site visits ---------------------------------------------------------------
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select public.record_visit('/marketplace', true);
+select public.record_visit('/marketplace', false);
+select public.record_visit('/posts/30000000-0000-0000-0000-000000000001', false);
+select public.record_visit('/admin/reports', true);
+select public.record_visit('/x?<script>', true);
+select public.record_visit(repeat('/a', 100), true);
+select t.expect_error($$select * from public.site_visits$$, 'permission denied', 'visits: visitors cannot read the counts');
+select t.expect_error($$select * from public.visit_totals(7)$$, 'permission denied', 'visits: visitors cannot read the totals');
+select t.expect_error($$insert into public.site_visits (day, path, views) values (current_date, '/', 1000000)$$,
+  'permission denied', 'visits: visitors cannot write counts directly');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+select public.record_visit('/events', true);
+select t.ok(not exists (select 1 from public.site_visits), 'visits: members cannot read the counts');
+select t.ok((select sum(views) from public.visit_totals(7)) = 0, 'visits: members see no totals');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select t.ok((select views from public.site_visits where path = '/marketplace') = 2
+  and (select visitors from public.site_visits where path = '/marketplace') = 1,
+  'visits: views and new visitors are counted per page');
+select t.ok(not exists (select 1 from public.site_visits where path like '/admin%' or path like '%script%' or length(path) > 120),
+  'visits: admin pages and junk paths are not counted');
+select t.ok((select count(*) from public.visit_totals(7)) = 7
+  and (select views from public.visit_totals(7) order by day desc limit 1) = 4
+  and (select visitors from public.visit_totals(7) order by day desc limit 1) = 2,
+  'visits: staff see daily totals, with empty days included');
+select t.ok((select path from public.top_pages(7) limit 1) = '/marketplace', 'visits: staff see the top pages');
+reset role;
+insert into public.site_visits (day, path, views)
+  select (now() at time zone 'Asia/Bahrain')::date, '/p' || g, 1 from generate_series(1, 2000) g;
+select public.record_visit('/one-too-many', true);
+select t.ok(exists (select 1 from public.site_visits where path = '(other)')
+  and not exists (select 1 from public.site_visits where path = '/one-too-many'),
+  'visits: past 2,000 pages a day, new pages are counted as (other)');
