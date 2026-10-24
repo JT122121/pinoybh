@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { safeNext } from "@/lib/format";
+import { configuredSiteUrl } from "@/lib/site";
 import type { FormState } from "@/lib/types";
 
 /** Turnstile token from the form; Supabase checks it when CAPTCHA is on. */
@@ -18,7 +19,8 @@ function isCaptchaError(message: string) {
 const CAPTCHA_MESSAGE = "Please complete the check that you're a person, then try again.";
 
 async function siteUrl() {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  const configured = configuredSiteUrl();
+  if (configured) return configured;
   const h = await headers();
   return `${h.get("x-forwarded-proto") ?? "http"}://${h.get("host")}`;
 }

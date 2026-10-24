@@ -3,13 +3,14 @@ import { Archivo, Atkinson_Hyperlegible } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { COMMUNITY_STATEMENT } from "@/lib/constants";
+import { configuredSiteUrl } from "@/lib/site";
 import "./globals.css";
 
 const archivo = Archivo({ subsets: ["latin"], axes: ["wdth"], variable: "--font-archivo", display: "swap" });
 const atkinson = Atkinson_Hyperlegible({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-atkinson", display: "swap" });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(configuredSiteUrl() ?? "http://localhost:3000"),
   title: { default: "PinoyBH", template: "%s | PinoyBH" },
   description: COMMUNITY_STATEMENT,
 };
