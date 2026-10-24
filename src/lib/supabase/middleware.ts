@@ -22,14 +22,15 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Refreshes the session if needed and verifies the login token. With
+  // Supabase's signing keys this happens locally, without a network trip.
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
 
   // Banned members are signed out on their next request. Login is also
   // blocked in Supabase Auth, and the database refuses their writes.
-  if (user && !request.nextUrl.pathname.startsWith("/banned")) {
-    const { data: profile } = await supabase.from("profiles").select("is_banned").eq("id", user.id).maybeSingle();
+  if (userId && !request.nextUrl.pathname.startsWith("/banned")) {
+    const { data: profile } = await supabase.from("profiles").select("is_banned").eq("id", userId).maybeSingle();
     if (profile?.is_banned) {
       await supabase.auth.signOut();
       const url = request.nextUrl.clone();

@@ -13,15 +13,15 @@ export interface Viewer {
 /** The logged-in member for this request, or null. Cached per request. */
 export const getViewer = cache(async (): Promise<Viewer | null> => {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle<Profile>();
+  // Verified login token (checked locally where possible, see middleware).
+  const { data } = await supabase.auth.getClaims();
+  const userId = data?.claims?.sub;
+  if (!userId) return null;
+  const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle<Profile>();
   if (!profile || profile.is_banned) return null;
   return {
-    userId: user.id,
-    email: user.email,
+    userId,
+    email: typeof data?.claims?.email === "string" ? data.claims.email : undefined,
     profile,
     isStaff: profile.role === "moderator" || profile.role === "admin",
   };
