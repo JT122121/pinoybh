@@ -9,7 +9,10 @@ import { EventDetails } from "@/components/EventDetails";
 import { SubmitButton } from "@/components/SubmitButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CONTACT_METHODS, JOB_TYPES, STATUS_LABEL } from "@/lib/constants";
-import { formatPrice, mediaUrl, timeAgo, whatsappLink } from "@/lib/format";
+import { formatEventWhen, formatPrice, mediaUrl, timeAgo, whatsappLink } from "@/lib/format";
+import { configuredSiteUrl } from "@/lib/site";
+import { ShareButtons } from "@/components/ShareButtons";
+import type { Metadata } from "next";
 import { KIND_LABEL, KIND_PATH } from "@/lib/kinds";
 import { POST_SELECT, sortPhotos } from "@/lib/posts";
 import { createClient } from "@/lib/supabase/server";
@@ -25,9 +28,32 @@ async function loadPost(id: string) {
   return data ? sortPhotos(data as unknown as PostWithExtras) : null;
 }
 
-export async function generateMetadata({ params }: Params) {
+/** Title, text and picture shown when the post is shared on Facebook, WhatsApp and others. */
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const post = await loadPost((await params).id);
-  return { title: post?.title ?? "Post not found" };
+  if (!post || post.status !== "active") return { title: post?.title ?? "Post not found", robots: { index: false } };
+  const jobType = JOB_TYPES.find((j) => j.value === post.job_type)?.label;
+  const lead =
+    post.kind === "event" && post.event_starts_at
+      ? [formatEventWhen(post.event_starts_at, post.event_ends_at), post.venue, formatPrice(post)]
+      : [formatPrice(post) ?? jobType, post.area];
+  const description = [lead.filter(Boolean).join(" | "), post.description.replace(/\s+/g, " ").slice(0, 160)].filter(Boolean).join(". ");
+  const photo = post.photos[0] ? mediaUrl(post.photos[0].path) : null;
+  const url = `/posts/${post.id}`;
+  return {
+    title: post.title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: "article",
+      siteName: "PinoyBH",
+      title: post.title,
+      description,
+      url,
+      images: photo ? [{ url: photo, alt: post.title }] : [{ url: "/opengraph-image", width: 1200, height: 630, alt: "PinoyBH" }],
+    },
+    twitter: { card: "summary_large_image", title: post.title, description },
+  };
 }
 
 export default async function PostPage({ params }: Params) {
@@ -194,6 +220,13 @@ export default async function PostPage({ params }: Params) {
                 </SubmitButton>
               </form>
             )}
+          </section>
+        )}
+
+        {post.status === "active" && (
+          <section className="panel grid gap-3 p-4" aria-label="Share">
+            <p className="font-bold">{isOwner ? "Share your post" : "Share with a kabayan"}</p>
+            <ShareButtons url={`${configuredSiteUrl() ?? ""}/posts/${post.id}`} title={post.title} />
           </section>
         )}
 
