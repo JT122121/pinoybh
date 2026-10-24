@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getViewer } from "@/lib/viewer";
-import type { PostStatus } from "@/lib/types";
+import type { CommentStatus, PostStatus } from "@/lib/types";
 
 async function staffClient() {
   const viewer = await getViewer();
@@ -27,6 +27,17 @@ export async function setPostStatus(formData: FormData) {
     supabase.rpc("admin_set_post_status", {
       p_post: String(formData.get("post_id")),
       p_status: String(formData.get("status")) as PostStatus,
+      p_note: note(formData),
+    }),
+  );
+}
+
+export async function setCommentStatus(formData: FormData) {
+  const supabase = await staffClient();
+  await run(
+    supabase.rpc("admin_set_comment_status", {
+      p_comment: String(formData.get("comment_id")),
+      p_status: String(formData.get("status")) as CommentStatus,
       p_note: note(formData),
     }),
   );

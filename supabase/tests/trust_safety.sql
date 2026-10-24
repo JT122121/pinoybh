@@ -251,7 +251,8 @@ insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '1
 reset role;
 select t.ok((select status from public.posts where id = '10000000-0000-0000-0000-000000000004') = 'active',
   'reports from brand-new accounts do not count toward auto-hide');
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+-- The third reporter is an ordinary member, not staff.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
 set role authenticated;
 insert into public.reports (reporter_id, post_id, reason) values (auth.uid(), '10000000-0000-0000-0000-000000000004', 'scam');
 reset role;
@@ -310,3 +311,112 @@ reset role;
 select t.ok(not exists (select 1 from public.profiles where id = '00000000-0000-0000-0000-00000000000d')
   and not exists (select 1 from public.follows where follower_id = '00000000-0000-0000-0000-00000000000d'),
   'deleting an account removes the profile and everything linked to it');
+
+-- Comments --------------------------------------------------------------------
+-- Post 5 ("Homemade pasalubong boxes") is Ben's and live. f is a fresh account.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+insert into public.comments (id, post_id, author_id, body)
+values ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000005', auth.uid(), 'Is this still available? Can I pick up in Riffa?');
+select t.ok((select status from public.comments where id = '20000000-0000-0000-0000-000000000001') = 'active',
+  'comments: a normal comment goes live');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', auth.uid(), 'Cheaper here, WhatsApp me 3333 4444')$$,
+  'phone numbers', 'comments: phone numbers are refused');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', auth.uid(), 'Message me at seller@example.com')$$,
+  'phone numbers, emails or links', 'comments: email addresses are refused');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', auth.uid(), 'See more at wa.me/97333334444 or bit.ly/abc')$$,
+  'phone numbers, emails or links', 'comments: links are refused');
+insert into public.comments (id, post_id, author_id, body)
+values ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000005', auth.uid(), 'Pay first then I deliver');
+select t.ok((select status from public.comments where id = '20000000-0000-0000-0000-000000000002') = 'pending_review',
+  'comments: flagged words send the comment to review');
+select t.expect_error($$update public.comments set status = 'active' where id = '20000000-0000-0000-0000-000000000002'$$,
+  'permission denied', 'comments: authors cannot approve their own comment');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000003', auth.uid(), 'Comment on a removed post')$$,
+  'closed', 'comments: cannot comment on a post that is not live');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-00000000000a', 'Pretending to be the admin')$$,
+  'row-level security', 'comments: cannot comment as someone else');
+update public.comments set body = 'Is this still available? Pick up in Riffa tonight?'
+where id = '20000000-0000-0000-0000-000000000001';
+select t.ok((select edited_at is not null from public.comments where id = '20000000-0000-0000-0000-000000000001'),
+  'comments: authors can edit, and edits are marked');
+reset role;
+
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000b' and comment_id = '20000000-0000-0000-0000-000000000001') = 'comment',
+  'comments: the post owner is notified of a new comment');
+select t.ok(not exists (select 1 from public.notifications where comment_id = '20000000-0000-0000-0000-000000000002'),
+  'comments: comments waiting for review notify nobody');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+insert into public.comments (id, post_id, author_id, parent_id, body)
+values ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000005', auth.uid(),
+        '20000000-0000-0000-0000-000000000001', 'Yes, still available. Friday works.');
+insert into public.comments (id, post_id, author_id, parent_id, body)
+values ('20000000-0000-0000-0000-000000000004', '10000000-0000-0000-0000-000000000005', auth.uid(),
+        '20000000-0000-0000-0000-000000000003', 'Also Saturday.');
+select t.ok((select parent_id from public.comments where id = '20000000-0000-0000-0000-000000000004') = '20000000-0000-0000-0000-000000000001',
+  'comments: a reply to a reply joins the same thread (one level, like Facebook)');
+select t.ok((select count(*) from public.comments where id = '20000000-0000-0000-0000-000000000002') = 0,
+  'comments: others cannot see a comment waiting for review');
+reset role;
+select t.ok((select reason from public.notifications
+             where user_id = '00000000-0000-0000-0000-00000000000f' and comment_id = '20000000-0000-0000-0000-000000000003') = 'reply',
+  'comments: the person replied to is notified');
+
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select t.ok((select count(*) from public.comments where post_id = '10000000-0000-0000-0000-000000000005') = 3,
+  'comments: logged-out visitors can read live comments');
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-00000000000f', 'Anonymous comment')$$,
+  'permission denied', 'comments: logged-out visitors cannot comment');
+reset role;
+
+-- Cora was blocked by Ben earlier.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+set role authenticated;
+select t.expect_error($$insert into public.comments (post_id, author_id, body)
+  values ('10000000-0000-0000-0000-000000000005', auth.uid(), 'Blocked but commenting')$$,
+  'cannot comment', 'comments: a blocked member cannot comment on the blocker''s posts');
+reset role;
+
+-- Reports: Cora and the admin (established) report f's comment; one more hides it.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+select t.expect_error($$insert into public.reports (reporter_id, comment_id, reason) values (auth.uid(), '20000000-0000-0000-0000-000000000001', 'spam')$$,
+  'own comment', 'comments: members cannot report their own comment');
+reset role;
+do $$
+declare r uuid;
+begin
+  foreach r in array array['00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c']::uuid[] loop
+    perform set_config('request.jwt.claim.sub', r::text, false);
+    set local role authenticated;
+    insert into public.reports (reporter_id, comment_id, reason) values (r, '20000000-0000-0000-0000-000000000001', 'spam');
+    reset role;
+  end loop;
+end $$;
+select t.ok((select status from public.comments where id = '20000000-0000-0000-0000-000000000001') = 'hidden',
+  'comments: a comment reported by 3 established members is hidden automatically');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select public.admin_set_comment_status('20000000-0000-0000-0000-000000000002', 'active', 'Fine in context');
+reset role;
+select t.ok((select status from public.comments where id = '20000000-0000-0000-0000-000000000002') = 'active'
+  and exists (select 1 from public.notifications where comment_id = '20000000-0000-0000-0000-000000000002' and reason = 'comment'),
+  'comments: a moderator can approve a comment, and the post owner is then notified');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+delete from public.comments where id = '20000000-0000-0000-0000-000000000002';
+reset role;
+select t.ok(not exists (select 1 from public.comments where id = '20000000-0000-0000-0000-000000000002'),
+  'comments: the post owner can delete any comment on their post');

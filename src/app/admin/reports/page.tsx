@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { resolveReport, setPostStatus } from "@/app/actions/admin";
+import { resolveReport, setCommentStatus, setPostStatus } from "@/app/actions/admin";
 import { BanForm } from "@/components/admin/BanForm";
 import { SubmitButton } from "@/components/SubmitButton";
 import { REPORT_REASON_LABEL, STATUS_LABEL } from "@/lib/constants";
@@ -15,6 +15,7 @@ type Row = {
   reporter: { id: string; display_name: string } | null;
   post: { id: string; title: string; status: PostStatus; author_id: string } | null;
   target: { id: string; display_name: string; is_banned: boolean } | null;
+  comment: { id: string; body: string; post_id: string; author_id: string; status: string } | null;
 };
 
 export default async function ReportsPage() {
@@ -22,7 +23,7 @@ export default async function ReportsPage() {
   const { data } = await supabase
     .from("reports")
     .select(
-      "id, reason, details, created_at, reporter:profiles!reports_reporter_id_fkey(id, display_name), post:posts(id, title, status, author_id), target:profiles!reports_profile_id_fkey(id, display_name, is_banned)",
+      "id, reason, details, created_at, reporter:profiles!reports_reporter_id_fkey(id, display_name), post:posts(id, title, status, author_id), target:profiles!reports_profile_id_fkey(id, display_name, is_banned), comment:comments(id, body, post_id, author_id, status)",
     )
     .eq("status", "open")
     .order("created_at")
@@ -32,7 +33,7 @@ export default async function ReportsPage() {
   // Group by what was reported, so 5 reports on one post are one item.
   const groups = new Map<string, Row[]>();
   for (const r of rows) {
-    const key = r.post ? `post:${r.post.id}` : `profile:${r.target?.id}`;
+    const key = r.post ? `post:${r.post.id}` : r.comment ? `comment:${r.comment.id}` : `profile:${r.target?.id}`;
     groups.set(key, [...(groups.get(key) ?? []), r]);
   }
 
@@ -45,7 +46,15 @@ export default async function ReportsPage() {
         return (
           <li key={key} className="panel grid gap-3 p-5">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              {first.post ? (
+              {first.comment ? (
+                <div>
+                  <p>
+                    Comment on <Link href={`/posts/${first.comment.post_id}#comment-${first.comment.id}`} className="font-bold underline">this post</Link>{" "}
+                    <span className="text-muted">({first.comment.status === "hidden" ? "hidden after reports" : first.comment.status})</span>
+                  </p>
+                  <p className="mt-1 whitespace-pre-line rounded-lg bg-surface p-2">{first.comment.body}</p>
+                </div>
+              ) : first.post ? (
                 <p>
                   Post: <Link href={`/posts/${first.post.id}`} className="font-bold underline">{first.post.title}</Link>{" "}
                   <span className="text-muted">({STATUS_LABEL[first.post.status]})</span>
@@ -93,7 +102,24 @@ export default async function ReportsPage() {
                 </>
               )}
             </div>
-            <BanForm userId={first.post ? first.post.author_id : first.target!.id} banned={Boolean(first.target?.is_banned)} />
+            {first.comment && (
+              <div className="flex flex-wrap gap-2">
+                <form action={setCommentStatus}>
+                  <input type="hidden" name="comment_id" value={first.comment.id} />
+                  <input type="hidden" name="status" value="removed" />
+                  <SubmitButton className="btn btn-danger btn-small" pendingText="..." confirm="Remove this comment?">Remove comment</SubmitButton>
+                </form>
+                <form action={setCommentStatus}>
+                  <input type="hidden" name="comment_id" value={first.comment.id} />
+                  <input type="hidden" name="status" value="active" />
+                  <SubmitButton className="btn btn-quiet btn-small" pendingText="...">Comment is fine, keep it</SubmitButton>
+                </form>
+              </div>
+            )}
+            <BanForm
+              userId={first.post ? first.post.author_id : first.comment ? first.comment.author_id : first.target!.id}
+              banned={Boolean(first.target?.is_banned)}
+            />
           </li>
         );
       })}

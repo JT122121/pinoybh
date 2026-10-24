@@ -2,7 +2,7 @@ import { createClient } from "./supabase/server";
 import type { Category, PostKind, PostWithExtras } from "./types";
 
 export const POST_SELECT =
-  "*, author:profiles!posts_author_id_fkey(id, display_name, is_verified, avatar_path, area), photos:post_photos(path, position)";
+  "*, author:profiles!posts_author_id_fkey(id, display_name, is_verified, avatar_path, area), photos:post_photos(path, position), comment_count:comments(count)";
 
 export function sortPhotos<T extends { photos: { position: number }[] }>(post: T): T {
   return { ...post, photos: [...(post.photos ?? [])].sort((a, b) => a.position - b.position) };

@@ -6,7 +6,19 @@ import { REPORT_REASONS } from "@/lib/constants";
 import { FormMessage } from "./FormMessage";
 import { SubmitButton } from "./SubmitButton";
 
-export function ReportDialog({ postId, profileId, label }: { postId?: string; profileId?: string; label: string }) {
+export function ReportDialog({
+  postId,
+  profileId,
+  commentId,
+  label,
+  buttonClassName = "btn btn-danger btn-small",
+}: {
+  postId?: string;
+  profileId?: string;
+  commentId?: string;
+  label: string;
+  buttonClassName?: string;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [state, action] = useActionState(sendReport, {});
   const [reason, setReason] = useState("");
@@ -14,7 +26,7 @@ export function ReportDialog({ postId, profileId, label }: { postId?: string; pr
 
   return (
     <>
-      <button type="button" className="btn btn-danger btn-small" onClick={() => dialog.current?.showModal()}>
+      <button type="button" className={buttonClassName} onClick={() => dialog.current?.showModal()}>
         {label}
       </button>
       <dialog ref={dialog} className="m-auto w-[min(32rem,calc(100%-2rem))] rounded-2xl p-0 backdrop:bg-ink/60">
@@ -30,6 +42,7 @@ export function ReportDialog({ postId, profileId, label }: { postId?: string; pr
               <FormMessage state={state} />
               {postId && <input type="hidden" name="post_id" value={postId} />}
               {profileId && <input type="hidden" name="profile_id" value={profileId} />}
+              {commentId && <input type="hidden" name="comment_id" value={commentId} />}
               <fieldset className="grid gap-2">
                 <legend className="field-label mb-1">What's wrong?</legend>
                 {REPORT_REASONS.map((r) => (

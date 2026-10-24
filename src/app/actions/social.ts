@@ -82,11 +82,13 @@ export async function sendReport(_prev: FormState, formData: FormData): Promise<
 
   const postId = formData.get("post_id");
   const profileId = formData.get("profile_id");
+  const commentId = formData.get("comment_id");
   const supabase = await createClient();
   const { error } = await supabase.from("reports").insert({
     reporter_id: viewer.userId,
     post_id: postId ? String(postId) : null,
     profile_id: profileId ? String(profileId) : null,
+    comment_id: commentId ? String(commentId) : null,
     reason,
     details: details || null,
   });

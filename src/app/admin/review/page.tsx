@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { setPostStatus } from "@/app/actions/admin";
+import { setCommentStatus, setPostStatus } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/SubmitButton";
 import { STATUS_LABEL } from "@/lib/constants";
 import { timeAgo } from "@/lib/format";
@@ -34,9 +34,64 @@ export default async function ReviewPage() {
     .limit(100);
   const posts = (data ?? []) as unknown as (Post & { author: { id: string; display_name: string; created_at: string } | null })[];
 
-  if (posts.length === 0) return <p className="panel p-5">The review queue is empty.</p>;
+  const { data: commentData } = await supabase
+    .from("comments")
+    .select("id, body, status, flagged_terms, created_at, post_id, author:profiles!comments_author_id_fkey(id, display_name, created_at), post:posts(title)")
+    .in("status", ["pending_review", "hidden"])
+    .order("created_at")
+    .limit(100);
+  type PendingComment = {
+    id: string;
+    body: string;
+    status: "pending_review" | "hidden";
+    flagged_terms: string[];
+    created_at: string;
+    post_id: string;
+    author: { id: string; display_name: string; created_at: string } | null;
+    post: { title: string } | null;
+  };
+  const comments = (commentData ?? []) as unknown as PendingComment[];
+
+  if (posts.length === 0 && comments.length === 0) return <p className="panel p-5">The review queue is empty.</p>;
 
   return (
+    <div className="grid gap-8">
+      {comments.length > 0 && (
+        <section className="grid gap-3">
+          <h2 className="heading text-xl">Comments</h2>
+          <ul className="grid gap-3">
+            {comments.map((c) => (
+              <li key={c.id} className="panel grid gap-2 p-4">
+                <p className="text-sm text-muted">
+                  <Link href={`/u/${c.author?.id}`} className="underline">{c.author?.display_name}</Link>
+                  {c.author && <>, joined {timeAgo(c.author.created_at)}</>}, on{" "}
+                  <Link href={`/posts/${c.post_id}#comment-${c.id}`} className="underline">{c.post?.title ?? "a post"}</Link>.{" "}
+                  <span className="font-bold text-flag">{c.status === "hidden" ? "Hidden after reports" : "Waiting for review"}</span>
+                </p>
+                {c.flagged_terms.length > 0 && (
+                  <p className="text-[0.9375rem]">Flagged for: <span className="font-bold">{c.flagged_terms.join(", ")}</span></p>
+                )}
+                <p className="whitespace-pre-line rounded-lg bg-surface p-3">
+                  <Highlight text={c.body} terms={c.flagged_terms} />
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <form action={setCommentStatus}>
+                    <input type="hidden" name="comment_id" value={c.id} />
+                    <input type="hidden" name="status" value="active" />
+                    <SubmitButton className="btn btn-primary btn-small" pendingText="...">Approve</SubmitButton>
+                  </form>
+                  <form action={setCommentStatus}>
+                    <input type="hidden" name="comment_id" value={c.id} />
+                    <input type="hidden" name="status" value="removed" />
+                    <SubmitButton className="btn btn-danger btn-small" pendingText="..." confirm="Remove this comment?">Remove</SubmitButton>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {posts.length > 0 && <h2 className="heading -mb-5 text-xl">Posts</h2>}
     <ul className="grid gap-4">
       {posts.map((p) => (
         <li key={p.id} className="panel grid gap-3 p-5">
@@ -75,5 +130,6 @@ export default async function ReviewPage() {
         </li>
       ))}
     </ul>
+    </div>
   );
 }

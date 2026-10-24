@@ -48,6 +48,22 @@ export interface Post {
 export interface PostWithExtras extends Post {
   author: AuthorSummary | null;
   photos: Photo[];
+  /** PostgREST count embed: [{ count }]. Counts comments the viewer can see. */
+  comment_count?: { count: number }[];
+}
+
+export type CommentStatus = "active" | "pending_review" | "hidden" | "removed";
+
+export interface Comment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  parent_id: string | null;
+  body: string;
+  status: CommentStatus;
+  edited_at: string | null;
+  created_at: string;
+  author: Pick<Profile, "id" | "display_name" | "is_verified" | "avatar_path"> | null;
 }
 
 export interface Category {

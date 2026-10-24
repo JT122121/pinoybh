@@ -11,6 +11,8 @@ const REASON: Record<string, string> = {
   followed_member: "From a member you follow",
   followed_category: "In a category you follow",
   saved_search: "Matches a search you follow",
+  comment: "New comment on your post",
+  reply: "Replied to your comment",
 };
 
 export default async function NotificationsPage() {
@@ -18,12 +20,20 @@ export default async function NotificationsPage() {
   const supabase = await createClient();
   const { data } = await supabase
     .from("notifications")
-    .select("id, reason, read_at, created_at, post:posts(id, title, status)")
+    .select("id, reason, read_at, created_at, comment_id, post:posts(id, title, status), comment:comments(body, author:profiles!comments_author_id_fkey(display_name))")
     .order("created_at", { ascending: false })
     .limit(100);
-  type Row = { id: string; reason: string; read_at: string | null; created_at: string; post: { id: string; title: string } | null };
+  type Row = {
+    id: string;
+    reason: string;
+    read_at: string | null;
+    created_at: string;
+    comment_id: string | null;
+    post: { id: string; title: string } | null;
+    comment: { body: string; author: { display_name: string } | null } | null;
+  };
   // A post can disappear (deleted, hidden or blocked); RLS then returns null.
-  const rows = ((data ?? []) as unknown as Row[]).filter((r) => r.post);
+  const rows = ((data ?? []) as unknown as Row[]).filter((r) => r.post && (!r.comment_id || r.comment));
   const unread = rows.some((r) => !r.read_at);
 
   return (
@@ -44,8 +54,13 @@ export default async function NotificationsPage() {
         <ul className="panel mt-6 divide-y divide-line">
           {rows.map((r) => (
             <li key={r.id} className={r.read_at ? "" : "bg-sun-soft"}>
-              <Link href={`/posts/${r.post!.id}`} className="block px-4 py-3">
+              <Link href={`/posts/${r.post!.id}${r.comment_id ? `#comment-${r.comment_id}` : ""}`} className="block px-4 py-3">
                 <span className="block font-bold">{r.post!.title}</span>
+                {r.comment && (
+                  <span className="line-clamp-2 block">
+                    {r.comment.author?.display_name ?? "A member"}: &ldquo;{r.comment.body}&rdquo;
+                  </span>
+                )}
                 <span className="text-sm text-muted">
                   {REASON[r.reason]}, {timeAgo(r.created_at)}
                 </span>

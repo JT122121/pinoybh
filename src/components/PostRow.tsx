@@ -10,6 +10,7 @@ export function PostRow({ post, showStatus = false }: { post: PostWithExtras; sh
   const photo = post.photos[0];
   const price = formatPrice(post);
   const jobLabel = post.job_type ? JOB_TYPES.find((j) => j.value === post.job_type)?.label : null;
+  const comments = post.comment_count?.[0]?.count ?? 0;
 
   return (
     <li className="border-b border-r border-line">
@@ -30,6 +31,7 @@ export function PostRow({ post, showStatus = false }: { post: PostWithExtras; sh
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
             {post.area && <span>{post.area}</span>}
             <span>{timeAgo(post.created_at)}</span>
+            {comments > 0 && <span>{comments} {comments === 1 ? "comment" : "comments"}</span>}
             {post.author?.is_verified && <VerifiedBadge />}
             {showStatus && post.status !== "active" && (
               <span className="rounded-full bg-flag-soft px-2 py-0.5 font-bold text-flag">{STATUS_LABEL[post.status]}</span>

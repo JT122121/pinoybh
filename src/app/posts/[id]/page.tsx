@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { blockMember, followMember, unfollow } from "@/app/actions/social";
 import { closePost, deletePost, reopenPost } from "@/app/actions/posts";
 import { ReportDialog } from "@/components/ReportDialog";
+import { CommentsSection } from "@/components/comments/CommentsSection";
 import { SubmitButton } from "@/components/SubmitButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CONTACT_METHODS, JOB_TYPES, STATUS_LABEL } from "@/lib/constants";
@@ -105,7 +106,7 @@ export default async function PostPage({ params }: Params) {
         )}
       </div>
 
-      <aside className="grid content-start gap-4">
+      <aside className="grid content-start gap-4 lg:row-span-2">
         <section className="panel p-4" aria-label="Contact">
           {isOwner ? (
             <div className="grid gap-2">
@@ -198,6 +199,9 @@ export default async function PostPage({ params }: Params) {
           </div>
         )}
       </aside>
+
+      {/* After the sidebar in the page order, so phones show Contact first; on desktop it sits under the post. */}
+      <CommentsSection post={post} viewer={viewer} />
     </article>
   );
 }

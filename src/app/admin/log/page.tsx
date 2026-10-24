@@ -14,6 +14,10 @@ const LABEL: Record<string, string> = {
   post_pending_review: "Sent a post to review",
   report_actioned: "Actioned a report",
   report_dismissed: "Dismissed a report",
+  comment_active: "Put a comment live",
+  comment_removed: "Removed a comment",
+  comment_hidden: "Hid a comment",
+  comment_pending_review: "Sent a comment to review",
 };
 
 export default async function LogPage() {
