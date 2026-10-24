@@ -22,7 +22,7 @@ export async function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 no-underline" aria-label="PinoyBH home">
           <Sun className="h-7 w-7 text-sun" />
           <span className="display flex items-center text-2xl">
-            Pinoy<span className="bh-flag">BH</span>
+            Pinoy<span className="text-bh-red">BH</span>
           </span>
         </Link>
 

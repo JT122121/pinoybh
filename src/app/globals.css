@@ -16,6 +16,8 @@
   --color-flag-soft: #fdecee;
   --color-leaf: #1e6b45;
   --color-leaf-soft: #e6f4ec;
+  /* Bahrain red, lightened so "BH" stays readable on the dark blue header. */
+  --color-bh-red: #ff4d5e;
 }
 
 :root {
@@ -200,25 +202,4 @@ body {
       transform: rotate(360deg);
     }
   }
-}
-
-/* "BH" in the logo, drawn like Bahrain's flag: white zigzag band, then red. */
-.bh-flag {
-  position: relative;
-  display: inline-block;
-  margin-left: 0.08em;
-  padding: 0.04em 0.22em 0.04em 0.5em;
-  border-radius: 0.14em;
-  background: #ce1126;
-  color: #fff;
-  line-height: 1;
-}
-.bh-flag::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 0.34em;
-  border-radius: 0.14em 0 0 0.14em;
-  background: #fff;
-  clip-path: polygon(0 0, 100% 0, 45% 10%, 100% 20%, 45% 30%, 100% 40%, 45% 50%, 100% 60%, 45% 70%, 100% 80%, 45% 90%, 100% 100%, 0 100%);
 }
