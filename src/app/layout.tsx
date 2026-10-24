@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
 import { Archivo, Atkinson_Hyperlegible } from "next/font/google";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EmailLinkHandler } from "@/components/EmailLinkHandler";
 import { VisitCounter } from "@/components/VisitCounter";
 import { AdSense } from "@/components/AdSense";
+import { ADSENSE_SRC, isAdFreePath } from "@/lib/adsense";
 import { COMMUNITY_STATEMENT } from "@/lib/constants";
 import { configuredSiteUrl } from "@/lib/site";
 import "./globals.css";
@@ -20,9 +22,11 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { themeColor: "#13286b" };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const path = (await headers()).get("x-pathname") ?? "";
   return (
     <html lang="en" className={`${archivo.variable} ${atkinson.variable}`}>
+      <head>{!isAdFreePath(path) && <script async src={ADSENSE_SRC} crossOrigin="anonymous" />}</head>
       <body className="flex min-h-dvh flex-col">
         <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 btn btn-sun">
           Skip to content

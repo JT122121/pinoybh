@@ -1,31 +1,29 @@
 "use client";
 
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-
-const CLIENT = "ca-pub-9013281257238178";
+import { ADSENSE_SRC, isAdFreePath } from "@/lib/adsense";
 
 /**
- * Google AdSense on every page except the admin pages, which show member
- * emails. The admin link does a full page load (see AccountMenu); if the
- * script is already running anyway (e.g. after the Back button), admin
- * reloads without it.
+ * The ad script is in the page <head> for every page except admin (see the
+ * root layout), which is what Google's site check looks for. This covers
+ * moving between pages without a reload: it adds the script when leaving
+ * admin, and reloads admin without it if it's already running (e.g. Back).
  */
 export function AdSense() {
   const path = usePathname();
-  const isAdmin = path.startsWith("/admin");
+  const adFree = isAdFreePath(path);
   useEffect(() => {
-    if (isAdmin && document.getElementById("adsense")) window.location.reload();
-  }, [isAdmin]);
-  if (isAdmin) return null;
-  return (
-    <Script
-      id="adsense"
-      async
-      strategy="afterInteractive"
-      src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${CLIENT}`}
-      crossOrigin="anonymous"
-    />
-  );
+    const loaded = document.querySelector(`script[src="${ADSENSE_SRC}"]`);
+    if (adFree && loaded) {
+      window.location.reload();
+    } else if (!adFree && !loaded) {
+      const s = document.createElement("script");
+      s.async = true;
+      s.src = ADSENSE_SRC;
+      s.crossOrigin = "anonymous";
+      document.head.appendChild(s);
+    }
+  }, [adFree]);
+  return null;
 }
