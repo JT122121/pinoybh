@@ -5,6 +5,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { timeAgo } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/types";
+import { getViewer } from "@/lib/viewer";
 
 export default async function MembersPage({ searchParams }: { searchParams: Promise<{ q?: string; banned?: string }> }) {
   const { q, banned } = await searchParams;
@@ -14,6 +15,14 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
   if (banned === "1") query = query.eq("is_banned", true);
   const { data } = await query;
   const members = (data ?? []) as Profile[];
+
+  // Emails are for admins only (read only), not moderators.
+  const viewer = await getViewer();
+  const emails = new Map<string, string>();
+  if (viewer?.isAdmin && members.length) {
+    const { data: rows } = await supabase.rpc("admin_member_emails", { p_ids: members.map((m) => m.id) });
+    for (const r of (rows ?? []) as { id: string; email: string }[]) emails.set(r.id, r.email);
+  }
 
   return (
     <div className="grid gap-4">
@@ -29,7 +38,10 @@ export default async function MembersPage({ searchParams }: { searchParams: Prom
         {members.map((m) => (
           <li key={m.id} className="panel grid gap-2 p-4">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <Link href={`/u/${m.id}`} className="font-bold underline">{m.display_name}</Link>
+              <div className="min-w-0">
+                <Link href={`/u/${m.id}`} className="font-bold underline">{m.display_name}</Link>
+                {emails.has(m.id) && <p className="select-all break-all text-[0.9375rem] text-muted">{emails.get(m.id)}</p>}
+              </div>
               <span className="text-sm text-muted">
                 {m.role !== "member" && <strong className="mr-2">{m.role}</strong>}
                 {m.is_verified && <strong className="mr-2">verified</strong>}

@@ -572,3 +572,27 @@ select public.record_visit('/one-too-many', true);
 select t.ok(exists (select 1 from public.site_visits where path = '(other)')
   and not exists (select 1 from public.site_visits where path = '/one-too-many'),
   'visits: past 2,000 pages a day, new pages are counted as (other)');
+
+-- Member emails (admins only) ------------------------------------------------
+update public.profiles set role = 'moderator' where id = '00000000-0000-0000-0000-00000000000e';
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select t.ok((select email from public.admin_member_emails(array['00000000-0000-0000-0000-00000000000b'::uuid])) = 'b@x.test',
+  'emails: an admin can see a member''s email');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000e', false);
+set role authenticated;
+select t.expect_error($$select * from public.admin_member_emails(array['00000000-0000-0000-0000-00000000000b'::uuid])$$,
+  'only admins', 'emails: a moderator cannot see emails');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+select t.expect_error($$select * from public.admin_member_emails(array['00000000-0000-0000-0000-00000000000c'::uuid])$$,
+  'only admins', 'emails: a member cannot see emails');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select t.expect_error($$select * from public.admin_member_emails(array['00000000-0000-0000-0000-00000000000b'::uuid])$$,
+  'permission denied', 'emails: visitors cannot see emails');
+reset role;
+update public.profiles set role = 'member' where id = '00000000-0000-0000-0000-00000000000e';

@@ -8,6 +8,7 @@ export interface Viewer {
   email: string | undefined;
   profile: Profile;
   isStaff: boolean;
+  isAdmin: boolean;
 }
 
 /** The logged-in member for this request, or null. Cached per request. */
@@ -24,6 +25,7 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
     email: typeof data?.claims?.email === "string" ? data.claims.email : undefined,
     profile,
     isStaff: profile.role === "moderator" || profile.role === "admin",
+    isAdmin: profile.role === "admin",
   };
 });
 

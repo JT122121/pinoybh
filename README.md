@@ -12,7 +12,7 @@ Members post for themselves (no businesses, agencies or recruiters): things to s
 
 ```
 supabase/migrations/   database schema, rules and permissions
-supabase/tests/        115 tests for the trust & safety rules (npm run test:db)
+supabase/tests/        119 tests for the trust & safety rules (npm run test:db)
 src/app/               pages and server actions
 src/components/        shared UI
 src/content/rules.ts   the community rules text
