@@ -139,8 +139,8 @@ export async function VisitStats() {
 
       <p className="text-sm text-muted">
         A visit is one person on one day: someone who comes back tomorrow counts again. Days are in Bahrain time. Admin pages
-        and search engine bots aren&rsquo;t counted, but your own visits to the rest of the site are. No IP addresses or
-        cookies are used.
+        and search engine bots aren&rsquo;t counted, but your own visits to the rest of the site are. This counter
+        uses no IP addresses or cookies.
       </p>
     </section>
   );

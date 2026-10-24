@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EmailLinkHandler } from "@/components/EmailLinkHandler";
 import { VisitCounter } from "@/components/VisitCounter";
+import { AdSense } from "@/components/AdSense";
 import { COMMUNITY_STATEMENT } from "@/lib/constants";
 import { configuredSiteUrl } from "@/lib/site";
 import "./globals.css";
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <EmailLinkHandler />
         <VisitCounter />
+        <AdSense />
         <SiteHeader />
         <main id="main" className="flex-1">
           {children}

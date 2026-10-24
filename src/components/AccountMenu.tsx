@@ -76,7 +76,8 @@ export function AccountMenu({
           <Link href="/account" role="menuitem" className={item}>My posts &amp; settings</Link>
           <Link href="/following" role="menuitem" className={item}>What I follow</Link>
           <Link href="/notifications" role="menuitem" className={item}>Notifications</Link>
-          {isStaff && <Link href="/admin" role="menuitem" className={item}>Admin dashboard</Link>}
+          {/* A full page load, so the ad script from the public pages isn't carried into admin. */}
+          {isStaff && <a href="/admin" role="menuitem" className={item}>Admin dashboard</a>}
           <Link href="/rules" role="menuitem" className={item}>Community rules</Link>
           <hr className="my-2 border-line" />
           <form action="/auth/signout" method="post">

@@ -79,8 +79,9 @@ export default function PrivacyPage() {
         <li>To review Verified Kabayan requests. (Your consent: you can withdraw it by asking us to remove your badge and the request.)</li>
       </ul>
       <p>
-        We do <strong>not</strong> sell your information, show ads, use advertising or tracking cookies, or use analytics tools
-        that follow you across other websites.
+        We do <strong>not</strong> sell your information. We show ads from Google to help pay for the site (see{" "}
+        <a href="#ads">Ads</a> below), but we never give Google or advertisers your email, posts, contact details or anything
+        else from your account.
       </p>
 
       <h2>Who can see what</h2>
@@ -102,6 +103,7 @@ export default function PrivacyPage() {
         <li><strong>Vercel</strong>: hosts the website. Pages are processed in Mumbai, India and delivered through a worldwide network.</li>
         <li><strong>Resend</strong>: sends account emails (confirmation and password reset), from servers in <strong>Ireland (EU)</strong>.</li>
         <li><strong>Cloudflare Turnstile</strong>, if switched on: checks that sign-ups and logins come from a person, not a bot.</li>
+        <li><strong>Google AdSense</strong>: shows the ads on the site. See <a href="#ads">Ads</a> below.</li>
       </ul>
       <p>
         This means your information is transferred outside Bahrain, mainly to India and the EU. We use well-known providers that
@@ -144,10 +146,24 @@ export default function PrivacyPage() {
         a password you don&rsquo;t use anywhere else, and tell us at once if you think your account was misused.
       </p>
 
+      <h2 id="ads">Ads</h2>
+      <p>
+        Pages on PinoyBH (except the moderators&rsquo; pages) show ads from Google AdSense. Google and its partners use cookies and
+        similar technology to show ads based on your visits to this and other websites. Google decides which ads you see; we
+        don&rsquo;t share any of your account information with them.
+      </p>
+      <p>
+        You can turn off personalised ads at{" "}
+        <a href="https://adssettings.google.com" target="_blank" rel="noreferrer">Google&rsquo;s Ad Settings</a>, and read how Google
+        uses information from sites that show its ads at{" "}
+        <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noreferrer">policies.google.com</a>. If
+        you see an ad that looks like a scam, please tell us.
+      </p>
+
       <h2>Cookies</h2>
       <p>
-        We use only the cookies needed to keep you logged in. If the anti-bot check (Cloudflare Turnstile) is switched on, it may
-        also use a cookie to tell people from bots. We don&rsquo;t use advertising or tracking cookies.
+        We use cookies to keep you logged in. Google uses advertising cookies to show ads (see <a href="#ads">Ads</a>). If the
+        anti-bot check (Cloudflare Turnstile) is switched on, it may also use a cookie to tell people from bots.
       </p>
 
       <h2>Age</h2>
