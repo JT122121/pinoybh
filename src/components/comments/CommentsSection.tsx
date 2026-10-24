@@ -67,11 +67,19 @@ export async function CommentsSection({ post, viewer }: { post: Post; viewer: Vi
       {top.length > 0 ? (
         <ul className="mt-6 grid gap-5">
           {top.map((c) => (
-            <CommentItem key={c.id} comment={c} replies={replies.get(c.id)} viewer={v} postAuthorId={post.author_id} canReply={canReply} />
+            <CommentItem
+              key={c.id}
+              comment={c}
+              replies={replies.get(c.id)}
+              viewer={v}
+              postAuthorId={post.author_id}
+              canReply={canReply}
+              authorLabel={post.kind === "listing" ? "Seller" : post.kind === "event" ? "Organizer" : "Poster"}
+            />
           ))}
         </ul>
       ) : (
-        open && <p className="mt-4 text-muted">No comments yet. Ask the {post.kind === "job" ? "poster" : "seller"} a question.</p>
+        open && <p className="mt-4 text-muted">No comments yet. Ask the {post.kind === "listing" ? "seller" : post.kind === "event" ? "organizer" : "poster"} a question.</p>
       )}
     </section>
   );

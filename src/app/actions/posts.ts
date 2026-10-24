@@ -7,6 +7,8 @@ import { friendlyDbError } from "@/lib/errors";
 import { AREAS, JOB_TYPES, MAX_PHOTOS } from "@/lib/constants";
 import type { ContactMethod, FormState, JobType, PostKind, PriceType } from "@/lib/types";
 import { getViewer } from "@/lib/viewer";
+import { fromBahrainInputs } from "@/lib/format";
+import { isPostKind } from "@/lib/kinds";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,25 +26,47 @@ function readPost(formData: FormData) {
     job_type: kind === "job" ? jobType : null,
     title: text("title"),
     description: text("description"),
-    price_type: kind === "listing" ? priceType : null,
-    price_bhd: kind === "listing" && priceType !== "free" && price !== "" ? Number(price) : null,
+    price_type: kind === "listing" || kind === "event" ? priceType : null,
+    price_bhd: (kind === "listing" || kind === "event") && priceType !== "free" && price !== "" ? Number(price) : null,
     area: (AREAS as readonly string[]).includes(area) ? area : null,
     reference_url: jobType === "referral" ? text("reference_url") || null : null,
     own_post_confirmed: kind === "job" && formData.get("own_post_confirmed") === "on",
     sponsorship_confirmed: jobType === "household" && formData.get("sponsorship_confirmed") === "on",
     contact: { method: text("contact_method") as ContactMethod, value: text("contact_value") },
     photos: formData.getAll("photo").map(String).slice(0, MAX_PHOTOS),
+    event_starts_at: kind === "event" ? fromBahrainInputs(text("event_date"), text("event_start")) : null,
+    event_ends_at: kind === "event" && text("event_end") ? endTime(text("event_date"), text("event_start"), text("event_end")) : null,
+    venue: kind === "event" ? text("venue").slice(0, 120) || null : null,
+    map_url: kind === "event" ? text("map_url") || null : null,
   };
 }
 
+/** End time on the same day, or the next day if it's earlier than the start (e.g. 8 PM to 1 AM). */
+function endTime(date: string, start: string, end: string): string | null {
+  const s = fromBahrainInputs(date, start);
+  const e = fromBahrainInputs(date, end);
+  if (!s || !e) return null;
+  return e > s ? e : new Date(new Date(e).getTime() + 24 * 60 * 60 * 1000).toISOString();
+}
+
+const MAPS_URL = /^https:\/\/((www\.)?google\.[a-z.]+\/maps|maps\.google\.[a-z.]+|maps\.app\.goo\.gl|goo\.gl\/maps)\//i;
+
 function validate(p: ReturnType<typeof readPost>, userId: string): string | null {
   if (!UUID.test(p.id)) return "Something went wrong. Reload the page and try again.";
-  if (p.kind !== "listing" && p.kind !== "job") return "Choose what you want to post.";
+  if (!isPostKind(p.kind)) return "Choose what you want to post.";
+  if (p.kind === "event") {
+    if (!p.category) return "Choose what kind of event this is.";
+    if (!p.event_starts_at) return "Choose the date and start time.";
+    if (!p.venue || p.venue.length < 2) return "Add the venue, e.g. a hall, park or church name.";
+    if (p.map_url && !MAPS_URL.test(p.map_url)) return "The map link must be a Google Maps link (share the place from Google Maps).";
+    if (!p.price_type) return "Choose Free or Pay at the door.";
+  }
   if (p.kind === "job" && !p.job_type) return "Choose the kind of job post.";
   if (p.kind === "listing" && !p.category) return "Choose a category.";
   if (p.title.length < 5 || p.title.length > 100) return "The title should be 5 to 100 characters.";
   if (p.description.length < 10) return "Add a few more words to the description.";
   if (p.kind === "listing" && !p.price_type) return "Choose a price option.";
+  if (p.kind === "event" && p.price_type === "negotiable") return "Choose Free or Pay at the door.";
   if (p.price_type === "fixed" && (p.price_bhd == null || !Number.isFinite(p.price_bhd) || p.price_bhd < 0)) return "Enter the price in BD.";
   if (p.kind === "job" && !p.own_post_confirmed) return "Please tick the box to confirm this is your own post and nobody pays a fee.";
   if (p.job_type === "referral" && !/^https?:\/\//i.test(p.reference_url ?? "")) return "Add a link to the official job listing (starting with https://).";
@@ -72,6 +96,10 @@ export async function savePost(_prev: FormState, formData: FormData): Promise<Fo
     reference_url: p.reference_url,
     own_post_confirmed: p.own_post_confirmed,
     sponsorship_confirmed: p.sponsorship_confirmed,
+    event_starts_at: p.event_starts_at,
+    event_ends_at: p.event_ends_at,
+    venue: p.venue,
+    map_url: p.map_url,
   };
 
   const { error } = isEdit
@@ -133,4 +161,25 @@ export async function deletePost(formData: FormData) {
   if (!error && photos?.length) await supabase.storage.from("media").remove(photos.map((p) => p.path));
   revalidatePath("/", "layout");
   redirect("/account");
+}
+
+/** Going / Interested, or remove your answer. */
+export async function setRsvp(formData: FormData) {
+  const viewer = await getViewer();
+  const postId = String(formData.get("post_id") ?? "");
+  if (!viewer) redirect(`/login?next=/posts/${postId}`);
+  if (!UUID.test(postId)) return;
+  const status = String(formData.get("status") ?? "");
+  const supabase = await createClient();
+  if (status === "going" || status === "interested") {
+    const { data: existing } = await supabase.from("event_rsvps").select("status").eq("post_id", postId).maybeSingle();
+    if (existing) {
+      await supabase.from("event_rsvps").update({ status }).eq("post_id", postId).eq("user_id", viewer.userId);
+    } else {
+      await supabase.from("event_rsvps").insert({ user_id: viewer.userId, post_id: postId, status });
+    }
+  } else {
+    await supabase.from("event_rsvps").delete().eq("post_id", postId).eq("user_id", viewer.userId);
+  }
+  revalidatePath(`/posts/${postId}`);
 }

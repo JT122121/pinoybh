@@ -6,9 +6,10 @@ import { getCategories, searchPosts } from "@/lib/posts";
 import { getViewer } from "@/lib/viewer";
 
 export default async function HomePage() {
-  const [listings, jobs, categories, viewer] = await Promise.all([
+  const [listings, jobs, events, categories, viewer] = await Promise.all([
     searchPosts({ kind: "listing" }),
     searchPosts({ kind: "job" }),
+    searchPosts({ kind: "event" }),
     getCategories("listing"),
     getViewer(),
   ]);
@@ -79,6 +80,18 @@ export default async function HomePage() {
             />
           </section>
         </div>
+
+        <section className="mt-10" aria-labelledby="events">
+          <div className="mb-3 flex items-baseline justify-between">
+            <h2 id="events" className="heading text-2xl">Upcoming Kabayan events</h2>
+            <Link href="/events" className="font-bold underline">See all</Link>
+          </div>
+          <PostList
+            wide
+            posts={events.slice(0, 4)}
+            empty={<p>No upcoming events yet. <Link href="/posts/new?kind=event" className="font-bold underline">Post one</Link>: a basketball game, a get-together, a church event.</p>}
+          />
+        </section>
 
         <section className="mt-10 grid gap-4 rounded-2xl border-2 border-flag/30 bg-paper p-5 sm:grid-cols-[auto_1fr] sm:items-center" aria-labelledby="safety">
           <h2 id="safety" className="heading text-xl text-flag">Never pay to get a job.</h2>

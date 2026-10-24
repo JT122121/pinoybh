@@ -18,6 +18,11 @@ export default function SafetyPage() {
         <li>See the item before you pay. Never pay a &ldquo;reservation fee&rdquo; for a room or item you haven't seen.</li>
         <li>For a bedspace or room, visit first and meet the people you'll live with.</li>
       </ul>
+      <h2>Events</h2>
+      <ul>
+        <li>Pay only at the event. Never send money, GCash or BenefitPay to &ldquo;reserve&rdquo; a slot.</li>
+        <li>Check the venue is a real public place before you go. Go with a friend the first time.</li>
+      </ul>
       <h2>Padala and balikbayan boxes</h2>
       <ul>
         <li>Never carry a package for someone you don't know, even a sealed gift. You are responsible for what's in your bag.</li>

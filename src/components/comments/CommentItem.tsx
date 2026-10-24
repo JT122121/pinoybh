@@ -21,12 +21,15 @@ export function CommentItem({
   viewer,
   postAuthorId,
   canReply,
+  authorLabel = "Seller",
 }: {
   comment: Comment;
   replies?: Comment[];
   viewer: Viewer | null;
   postAuthorId: string;
   canReply: boolean;
+  /** Tag on the post owner's comments: Seller, Poster or Organizer. */
+  authorLabel?: string;
 }) {
   const [mode, setMode] = useState<"idle" | "reply" | "edit">("idle");
   const isMine = viewer?.id === comment.author_id;
@@ -57,7 +60,7 @@ export function CommentItem({
                     <Sun className="h-3.5 w-3.5 text-ink" title="Verified Kabayan" />
                   </span>
                 )}
-                {comment.author_id === postAuthorId && <span className="rounded-full bg-sun-soft px-2 text-xs font-bold">Seller</span>}
+                {comment.author_id === postAuthorId && <span className="rounded-full bg-sun-soft px-2 text-xs font-bold">{authorLabel}</span>}
               </p>
               <p className="whitespace-pre-line break-words">{comment.body}</p>
             </div>
@@ -95,7 +98,7 @@ export function CommentItem({
           {(replies.length > 0 || mode === "reply") && (
             <ul className="mt-3 grid gap-3">
               {replies.map((r) => (
-                <CommentItem key={r.id} comment={r} viewer={viewer} postAuthorId={postAuthorId} canReply={canReply} />
+                <CommentItem key={r.id} comment={r} viewer={viewer} postAuthorId={postAuthorId} canReply={canReply} authorLabel={authorLabel} />
               ))}
               {mode === "reply" && (
                 <li>

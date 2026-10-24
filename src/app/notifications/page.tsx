@@ -14,6 +14,8 @@ const REASON: Record<string, string> = {
   comment: "New comment on your post",
   reply: "Replied to your comment",
   also_commented: "New comment on a post you commented on",
+  event_updated: "The time or place of this event changed",
+  event_cancelled: "This event was cancelled",
 };
 
 export default async function NotificationsPage() {

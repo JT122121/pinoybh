@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { unfollow } from "@/app/actions/social";
 import { SubmitButton } from "@/components/SubmitButton";
+import { KIND_LABEL, KIND_PATH } from "@/lib/kinds";
+import type { PostKind } from "@/lib/types";
 import { createClient } from "@/lib/supabase/server";
 import { requireViewer } from "@/lib/viewer";
 
@@ -17,20 +19,20 @@ export default async function FollowingPage() {
   type Row = {
     id: string;
     search_query: string | null;
-    search_kind: "listing" | "job" | null;
+    search_kind: PostKind | null;
     member: { id: string; display_name: string } | null;
-    category: { slug: string; name: string; kind: "listing" | "job" } | null;
+    category: { slug: string; name: string; kind: PostKind } | null;
   };
   const rows = (data ?? []) as unknown as Row[];
   const groups: { title: string; rows: Row[]; render: (r: Row) => React.ReactNode }[] = [
     { title: "Members", rows: rows.filter((r) => r.member), render: (r) => <Link href={`/u/${r.member!.id}`} className="font-bold underline">{r.member!.display_name}</Link> },
-    { title: "Categories", rows: rows.filter((r) => r.category), render: (r) => <Link href={`/${r.category!.kind === "job" ? "jobs" : "marketplace"}?category=${r.category!.slug}`} className="font-bold underline">{r.category!.name}</Link> },
+    { title: "Categories", rows: rows.filter((r) => r.category), render: (r) => <Link href={`${KIND_PATH[r.category!.kind]}?category=${r.category!.slug}`} className="font-bold underline">{r.category!.name}</Link> },
     {
       title: "Searches",
       rows: rows.filter((r) => r.search_query),
       render: (r) => (
-        <Link href={`/${r.search_kind === "job" ? "jobs" : "marketplace"}?q=${encodeURIComponent(r.search_query!)}`} className="font-bold underline">
-          &ldquo;{r.search_query}&rdquo; in {r.search_kind === "job" ? "Jobs" : "Marketplace"}
+        <Link href={`${KIND_PATH[r.search_kind ?? "listing"]}?q=${encodeURIComponent(r.search_query!)}`} className="font-bold underline">
+          &ldquo;{r.search_query}&rdquo; in {KIND_LABEL[r.search_kind ?? "listing"]}
         </Link>
       ),
     },

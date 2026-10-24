@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { savePost } from "@/app/actions/posts";
 import { AREAS, CONTACT_METHODS, JOB_CONFIRMATION, JOB_TYPES, SPONSORSHIP_CONFIRMATION } from "@/lib/constants";
+import { toBahrainInputs } from "@/lib/format";
 import type { Category, ContactMethod, JobType, Post, PostKind, PriceType } from "@/lib/types";
 import { FormMessage } from "./FormMessage";
 import { PhotoUploader } from "./PhotoUploader";
@@ -25,6 +26,8 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
   const [kind, setKind] = useState<PostKind>(post?.kind ?? initialKind);
   const [jobType, setJobType] = useState<JobType | "">(post?.job_type ?? "");
   const [priceType, setPriceType] = useState<PriceType>(post?.price_type ?? "fixed");
+  const eventStart = toBahrainInputs(post?.event_starts_at ?? null);
+  const eventEnd = toBahrainInputs(post?.event_ends_at ?? null);
 
   return (
     <form action={action} className="grid gap-6">
@@ -35,16 +38,19 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
       {!isEdit && (
         <fieldset className="grid gap-2">
           <legend className="field-label mb-1">What do you want to post?</legend>
-          <div className="grid grid-cols-2 gap-2">
-            {(["listing", "job"] as const).map((k) => (
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(["listing", "job", "event"] as const).map((k) => (
               <button
                 key={k}
                 type="button"
-                onClick={() => setKind(k)}
+                onClick={() => {
+                  setKind(k);
+                  if (k === "event") setPriceType("free");
+                }}
                 aria-pressed={kind === k}
                 className={`btn ${kind === k ? "btn-primary" : "btn-quiet"}`}
               >
-                {k === "listing" ? "Something to sell or give" : "A job post"}
+                {k === "listing" ? "Something to sell or give" : k === "job" ? "A job post" : "An event"}
               </button>
             ))}
           </div>
@@ -81,9 +87,9 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
       ) : (
         <label className="field">
           <span className="field-label">Category</span>
-          <select name="category" className="input" defaultValue={post?.category ?? ""} required disabled={isEdit}>
-            <option value="" disabled>Choose a category</option>
-            {categories.filter((c) => c.kind === "listing").map((c) => (
+          <select key={kind} name="category" className="input" defaultValue={post?.category ?? ""} required disabled={isEdit}>
+            <option value="" disabled>{kind === "event" ? "What kind of event?" : "Choose a category"}</option>
+            {categories.filter((c) => c.kind === kind).map((c) => (
               <option key={c.slug} value={c.slug}>{c.name}</option>
             ))}
           </select>
@@ -94,7 +100,11 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
       <label className="field">
         <span className="field-label">Title</span>
         <span className="field-hint">
-          {kind === "job" ? "For example: Experienced driver looking for work in Manama" : "For example: Rice cooker, 1.8L, almost new"}
+          {kind === "job"
+            ? "For example: Experienced driver looking for work in Manama"
+            : kind === "event"
+              ? "For example: Simbang Gabi carpool and breakfast, Sacred Heart Church"
+              : "For example: Rice cooker, 1.8L, almost new"}
         </span>
         <input name="title" className="input" required minLength={5} maxLength={100} defaultValue={post?.title} />
       </label>
@@ -102,16 +112,54 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
       <label className="field">
         <span className="field-label">Description</span>
         <span className="field-hint">
-          {kind === "job" ? "Duties, hours, salary, and what experience is needed." : "Condition, size, why you're selling, where to meet."}
+          {kind === "job"
+            ? "Duties, hours, salary, and what experience is needed."
+            : kind === "event"
+              ? "What happens, who it's for, what to bring."
+              : "Condition, size, why you're selling, where to meet."}
         </span>
         <textarea name="description" className="input" required minLength={10} maxLength={4000} defaultValue={post?.description} />
       </label>
 
-      {kind === "listing" && (
+      {kind === "event" && (
+        <fieldset className="grid gap-4">
+          <legend className="field-label mb-1">When and where</legend>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="field">
+              <span className="field-label">Date</span>
+              <input name="event_date" type="date" required className="input" defaultValue={eventStart.date} />
+            </label>
+            <label className="field">
+              <span className="field-label">Starts</span>
+              <input name="event_start" type="time" required className="input" defaultValue={eventStart.time} />
+            </label>
+            <label className="field">
+              <span className="field-label">Ends (optional)</span>
+              <input name="event_end" type="time" className="input" defaultValue={eventEnd.time} />
+            </label>
+          </div>
+          <p className="field-hint -mt-2">Bahrain time.</p>
+          <label className="field">
+            <span className="field-label">Venue</span>
+            <span className="field-hint">A public place: a hall, park, court, church or restaurant. Don&rsquo;t post a private home address here; share it with guests directly.</span>
+            <input name="venue" required minLength={2} maxLength={120} className="input" defaultValue={post?.venue ?? ""} placeholder="e.g. Andalus Garden" />
+          </label>
+          <label className="field">
+            <span className="field-label">Google Maps link (optional)</span>
+            <span className="field-hint">In Google Maps, open the place, tap Share and copy the link.</span>
+            <input name="map_url" type="url" className="input" defaultValue={post?.map_url ?? ""} placeholder="https://maps.app.goo.gl/..." />
+          </label>
+        </fieldset>
+      )}
+
+      {(kind === "listing" || kind === "event") && (
         <fieldset className="grid gap-2">
-          <legend className="field-label mb-1">Price</legend>
+          <legend className="field-label mb-1">{kind === "event" ? "Entry" : "Price"}</legend>
           <div className="flex flex-wrap gap-2">
-            {([["fixed", "Fixed price"], ["negotiable", "Negotiable"], ["free", "Free"]] as const).map(([value, label]) => (
+            {(kind === "event"
+              ? ([["free", "Free"], ["fixed", "Pay at the door"]] as const)
+              : ([["fixed", "Fixed price"], ["negotiable", "Negotiable"], ["free", "Free"]] as const)
+            ).map(([value, label]) => (
               <label key={value} className={`btn btn-small ${priceType === value ? "btn-primary" : "btn-quiet"}`}>
                 <input type="radio" name="price_type" value={value} checked={priceType === value} onChange={() => setPriceType(value)} className="sr-only" />
                 {label}
@@ -121,6 +169,7 @@ export function PostForm({ userId, postId, categories, defaultArea, initialKind,
           {priceType !== "free" && (
             <label className="field mt-1 max-w-[14rem]">
               <span className="field-label">Amount in BD{priceType === "negotiable" ? " (optional)" : ""}</span>
+              {kind === "event" && <span className="field-hint">Paid on the day only. Asking people to pay in advance to reserve a slot is not allowed.</span>}
               <input name="price_bhd" type="number" min="0" step="0.001" inputMode="decimal" className="input" required={priceType === "fixed"} defaultValue={post?.price_bhd ?? undefined} />
             </label>
           )}

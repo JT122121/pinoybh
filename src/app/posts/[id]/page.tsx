@@ -5,10 +5,12 @@ import { blockMember, followMember, unfollow } from "@/app/actions/social";
 import { closePost, deletePost, reopenPost } from "@/app/actions/posts";
 import { ReportDialog } from "@/components/ReportDialog";
 import { CommentsSection } from "@/components/comments/CommentsSection";
+import { EventDetails } from "@/components/EventDetails";
 import { SubmitButton } from "@/components/SubmitButton";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { CONTACT_METHODS, JOB_TYPES, STATUS_LABEL } from "@/lib/constants";
 import { formatPrice, mediaUrl, timeAgo, whatsappLink } from "@/lib/format";
+import { KIND_LABEL, KIND_PATH } from "@/lib/kinds";
 import { POST_SELECT, sortPhotos } from "@/lib/posts";
 import { createClient } from "@/lib/supabase/server";
 import type { ContactMethod, PostWithExtras } from "@/lib/types";
@@ -58,13 +60,13 @@ export default async function PostPage({ params }: Params) {
     <article className="mx-auto grid max-w-7xl gap-8 px-4 lg:px-8 py-8 lg:grid-cols-[1fr_22rem]">
       <div className="min-w-0">
         <p className="text-[0.9375rem] text-muted">
-          <Link href={post.kind === "job" ? "/jobs" : "/marketplace"} className="underline">
-            {post.kind === "job" ? "Jobs" : "Marketplace"}
+          <Link href={KIND_PATH[post.kind]} className="underline">
+            {KIND_LABEL[post.kind]}
           </Link>
           {category && (
             <>
               {" / "}
-              <Link href={`/${post.kind === "job" ? "jobs" : "marketplace"}?category=${post.category}`} className="underline">{category}</Link>
+              <Link href={`${KIND_PATH[post.kind]}?category=${post.category}`} className="underline">{category}</Link>
             </>
           )}
         </p>
@@ -74,12 +76,13 @@ export default async function PostPage({ params }: Params) {
             {STATUS_LABEL[post.status]}.{" "}
             {post.status === "pending_review" && "Only you and the moderators can see this post until it's approved."}
             {post.status === "hidden" && "Members reported this post. A moderator will check it."}
-            {post.status === "closed" && "This post is closed and no longer shown in search."}
+            {post.status === "closed" && (post.kind === "event" ? "This event was cancelled." : "This post is closed and no longer shown in search.")}
           </p>
         )}
 
         <h1 className="heading mt-3 text-3xl sm:text-4xl">{post.title}</h1>
-        {price && <p className="display mt-3 text-3xl">{price}</p>}
+        {price && post.kind !== "event" && <p className="display mt-3 text-3xl">{price}</p>}
+        {post.kind === "event" && post.event_starts_at && <EventDetails post={post} viewer={viewer} />}
         {jobType && <p className="mt-2 text-lg font-bold text-ink-soft">{jobType.label}</p>}
         <p className="mt-2 flex flex-wrap gap-x-4 text-muted">
           {post.area && <span>{post.area}</span>}
@@ -111,14 +114,26 @@ export default async function PostPage({ params }: Params) {
           {isOwner ? (
             <div className="grid gap-2">
               <p className="font-bold">This is your post.</p>
-              <Link href={`${here}/edit`} className="btn btn-primary">Edit post</Link>
-              {post.status === "active" && (
+              <Link href={`${here}/edit`} className="btn btn-primary">{post.kind === "event" ? "Edit event" : "Edit post"}</Link>
+              {post.status === "active" && post.kind === "event" && (
+                <form action={closePost}>
+                  <input type="hidden" name="id" value={post.id} />
+                  <SubmitButton
+                    className="btn btn-quiet w-full"
+                    pendingText="Cancelling..."
+                    confirm="Cancel this event? Everyone who said Going or Interested will be told. A cancelled event can't be re-opened."
+                  >
+                    Cancel event
+                  </SubmitButton>
+                </form>
+              )}
+              {post.status === "active" && post.kind !== "event" && (
                 <form action={closePost}>
                   <input type="hidden" name="id" value={post.id} />
                   <SubmitButton className="btn btn-quiet w-full" pendingText="Closing...">Close post (sold or filled)</SubmitButton>
                 </form>
               )}
-              {post.status === "closed" && (
+              {post.status === "closed" && post.kind !== "event" && (
                 <form action={reopenPost}>
                   <input type="hidden" name="id" value={post.id} />
                   <SubmitButton className="btn btn-quiet w-full" pendingText="Opening...">Open post again</SubmitButton>
@@ -188,7 +203,7 @@ export default async function PostPage({ params }: Params) {
               <>
                 <ReportDialog postId={post.id} label="Report this post" />
                 <form action={blockMember}>
-                  <input type="hidden" name="back" value={post.kind === "job" ? "/jobs" : "/marketplace"} />
+                  <input type="hidden" name="back" value={KIND_PATH[post.kind]} />
                   <input type="hidden" name="user_id" value={post.author_id} />
                   <SubmitButton className="btn btn-quiet btn-small" pendingText="Blocking..." confirm={`Block ${post.author?.display_name ?? "this member"}? You won't see each other's posts while logged in, and they can't follow you. You can unblock them later in My account.`}>Block member</SubmitButton>
                 </form>

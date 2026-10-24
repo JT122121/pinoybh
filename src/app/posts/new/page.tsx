@@ -11,14 +11,14 @@ export default async function NewPostPage({ searchParams }: { searchParams: Prom
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <h1 className="display text-4xl">New post</h1>
-      <p className="mt-3 text-muted">Be honest and clear. Posts are for individuals only, not businesses or agencies.</p>
+      <p className="mt-3 text-muted">Be honest and clear. Posts are for individuals and community groups, not businesses or agencies.</p>
       <div className="panel mt-6 p-5 sm:p-6">
         <PostForm
           userId={viewer.userId}
           postId={crypto.randomUUID()}
           categories={categories}
           defaultArea={viewer.profile.area}
-          initialKind={kind === "job" ? "job" : "listing"}
+          initialKind={kind === "job" || kind === "event" ? kind : "listing"}
         />
       </div>
     </div>

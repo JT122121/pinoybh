@@ -8,6 +8,7 @@ import { safeNext } from "@/lib/format";
 import type { FormState, PostKind, ReportReason } from "@/lib/types";
 import { REPORT_REASONS } from "@/lib/constants";
 import { friendlyDbError } from "@/lib/errors";
+import { isPostKind } from "@/lib/kinds";
 
 async function viewerOrLogin(back: string) {
   const viewer = await getViewer();
@@ -39,7 +40,7 @@ export async function followSearch(formData: FormData) {
   await supabase.from("follows").insert({
     follower_id: viewer.userId,
     search_query: String(formData.get("q") ?? "").trim().slice(0, 80),
-    search_kind: kind === "listing" || kind === "job" ? (kind as PostKind) : null,
+    search_kind: isPostKind(kind) ? kind : null,
   });
   revalidatePath(back);
 }

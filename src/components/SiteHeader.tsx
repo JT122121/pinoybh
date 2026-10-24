@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getViewer } from "@/lib/viewer";
 import { createClient } from "@/lib/supabase/server";
+import { AccountMenu } from "./AccountMenu";
 import { Sun } from "./Sun";
 
 export async function SiteHeader() {
@@ -20,12 +21,15 @@ export async function SiteHeader() {
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-2 px-4 lg:px-8 py-3">
         <Link href="/" className="flex items-center gap-2 no-underline" aria-label="PinoyBH home">
           <Sun className="h-7 w-7 text-sun" />
-          <span className="display text-2xl">PinoyBH</span>
+          <span className="display flex items-center text-2xl">
+            Pinoy<span className="bh-flag">BH</span>
+          </span>
         </Link>
 
         <nav aria-label="Main" className="order-3 flex w-full gap-5 text-[0.9375rem] font-bold sm:order-none sm:w-auto">
           <Link href="/marketplace" className="hover:text-sun">Marketplace</Link>
           <Link href="/jobs" className="hover:text-sun">Jobs</Link>
+          <Link href="/events" className="hover:text-sun">Events</Link>
           <Link href="/rules" className="hover:text-sun">Community rules</Link>
         </nav>
 
@@ -43,13 +47,13 @@ export async function SiteHeader() {
                   </span>
                 )}
               </Link>
-              {viewer.isStaff && (
-                <Link href="/admin" className="text-[0.9375rem] font-bold hover:text-sun">Admin</Link>
-              )}
-              <Link href="/account" className="text-[0.9375rem] font-bold hover:text-sun">
-                {viewer.profile.display_name}
-              </Link>
               <Link href="/posts/new" className="btn btn-sun btn-small">Post</Link>
+              <AccountMenu
+                userId={viewer.userId}
+                name={viewer.profile.display_name}
+                avatarPath={viewer.profile.avatar_path}
+                isStaff={viewer.isStaff}
+              />
             </>
           ) : (
             <>

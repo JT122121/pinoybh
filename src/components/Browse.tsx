@@ -21,6 +21,12 @@ const COPY: Record<PostKind, { title: string; intro: string; placeholder: string
     placeholder: "Try driver, kasambahay, cashier",
     postLabel: "Post a job",
   },
+  event: {
+    title: "Kabayan Events",
+    intro: "Get-togethers, sports, church and community events around Bahrain. Never pay in advance to reserve a slot.",
+    placeholder: "Try basketball, simbang gabi, christmas party",
+    postLabel: "Post an event",
+  },
 };
 
 export async function Browse({ kind, filters, basePath }: { kind: PostKind; filters: SearchFilters; basePath: string }) {

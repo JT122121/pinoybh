@@ -447,3 +447,88 @@ delete from public.comments where id = '20000000-0000-0000-0000-000000000002';
 reset role;
 select t.ok(not exists (select 1 from public.comments where id = '20000000-0000-0000-0000-000000000002'),
   'comments: the post owner can delete any comment on their post');
+
+-- Events ----------------------------------------------------------------------
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+insert into public.posts (id, author_id, kind, category, title, description, price_type, area, venue, event_starts_at, map_url)
+values ('30000000-0000-0000-0000-000000000001', auth.uid(), 'event', 'community', 'Pinoy Independence Day picnic',
+        'Bring food to share. Games for kids.', 'free', 'Manama', 'Andalus Garden', now() + interval '10 days',
+        'https://maps.app.goo.gl/abc123');
+select t.ok((select status from public.posts where id = '30000000-0000-0000-0000-000000000001') = 'active',
+  'events: a normal event goes live');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type, venue, event_starts_at)
+  values (auth.uid(), 'event', 'sports', 'Basketball last week', 'This already happened.', 'free', 'Isa Town court', now() - interval '1 day')$$,
+  'future', 'events: the date must be in the future');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type, venue, event_starts_at, map_url)
+  values (auth.uid(), 'event', 'sports', 'Basketball league', 'Weekly games.', 'free', 'Isa Town court', now() + interval '3 days', 'https://evil.example.com/maps/x')$$,
+  'map_url', 'events: map links must be Google Maps');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type, price_bhd, venue, event_starts_at)
+  values (auth.uid(), 'event', 'community', 'Christmas party', 'Dinner and games.', 'negotiable', 5, 'Hall', now() + interval '3 days')$$,
+  'event_fields', 'events: price is free or a fixed pay-at-the-door amount');
+select t.expect_error($$insert into public.posts (author_id, kind, category, title, description, price_type, venue, event_starts_at)
+  values (auth.uid(), 'event', 'household', 'Wrong category', 'Event in a job category.', 'free', 'Hall', now() + interval '3 days')$$,
+  'category does not match', 'events: must use an event category');
+insert into public.posts (id, author_id, kind, category, title, description, price_type, price_bhd, venue, event_starts_at)
+values ('30000000-0000-0000-0000-000000000002', auth.uid(), 'event', 'community', 'Pinoy Night dinner',
+        'Pay the registration fee by GCash to reserve your slot.', 'fixed', 5, 'Seef hall', now() + interval '20 days');
+select t.ok((select status from public.posts where id = '30000000-0000-0000-0000-000000000002') = 'pending_review',
+  'events: "registration fee" / GCash events wait for a moderator');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+insert into public.event_rsvps (user_id, post_id, status) values (auth.uid(), '30000000-0000-0000-0000-000000000001', 'going');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+insert into public.event_rsvps (user_id, post_id, status) values (auth.uid(), '30000000-0000-0000-0000-000000000001', 'interested');
+select t.ok((select count(*) from public.event_rsvps) = 1, 'events: members only see their own Going/Interested answer');
+select t.ok((select going = 1 and interested = 1 from public.event_rsvp_counts(array['30000000-0000-0000-0000-000000000001']::uuid[])),
+  'events: everyone sees the Going/Interested counts');
+select t.expect_error($$insert into public.event_rsvps (user_id, post_id, status) values ('00000000-0000-0000-0000-00000000000a', '30000000-0000-0000-0000-000000000001', 'going')$$,
+  'row-level security', 'events: cannot answer for someone else');
+select t.expect_error($$insert into public.event_rsvps (user_id, post_id, status) values (auth.uid(), '10000000-0000-0000-0000-000000000005', 'going')$$,
+  'no longer open', 'events: cannot RSVP to something that is not an event');
+reset role;
+select set_config('request.jwt.claim.sub', '', false);
+set role anon;
+select t.expect_error($$select * from public.event_rsvps$$, 'permission denied', 'events: visitors cannot see who is going');
+select t.ok(exists (select 1 from public.search_posts(null, 'event') where id = '30000000-0000-0000-0000-000000000001'),
+  'events: upcoming events are listed');
+reset role;
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+update public.posts set event_starts_at = now() + interval '11 days' where id = '30000000-0000-0000-0000-000000000001';
+update public.posts set venue = 'Andalus Garden, near the fountain' where id = '30000000-0000-0000-0000-000000000001';
+reset role;
+select t.ok((select count(*) from public.notifications where post_id = '30000000-0000-0000-0000-000000000001' and reason = 'event_updated') = 2,
+  'events: everyone going or interested is told when the time or place changes (one notification each)');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+set role authenticated;
+update public.posts set status = 'closed' where id = '30000000-0000-0000-0000-000000000001';
+select t.expect_error($$update public.posts set status = 'active' where id = '30000000-0000-0000-0000-000000000001'$$,
+  'cannot change', 'events: a cancelled event cannot be re-opened');
+reset role;
+select t.ok((select count(*) from public.notifications where post_id = '30000000-0000-0000-0000-000000000001' and reason = 'event_cancelled') = 2,
+  'events: everyone going or interested is told when it is cancelled');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+set role authenticated;
+select t.ok(exists (select 1 from public.posts where id = '30000000-0000-0000-0000-000000000001' and status = 'closed'),
+  'events: a cancelled event can still be opened (shown as cancelled)');
+select t.ok(not exists (select 1 from public.search_posts(null, 'event') where id = '30000000-0000-0000-0000-000000000001'),
+  'events: a cancelled event is not listed');
+reset role;
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000f', false);
+set role authenticated;
+select t.expect_error($$update public.event_rsvps set status = 'going' where post_id = '30000000-0000-0000-0000-000000000001'$$,
+  'no longer open', 'events: cannot RSVP to a cancelled event');
+reset role;
+
+-- Past events drop off the list (set the date directly, skipping the "future" rule).
+alter table public.posts disable trigger posts_enforce_rules;
+update public.posts set status = 'active', event_starts_at = now() - interval '1 day' where id = '30000000-0000-0000-0000-000000000001';
+alter table public.posts enable trigger posts_enforce_rules;
+select t.ok(not exists (select 1 from public.search_posts(null, 'event') where id = '30000000-0000-0000-0000-000000000001'),
+  'events: past events are no longer listed');

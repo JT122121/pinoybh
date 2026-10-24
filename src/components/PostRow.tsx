@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { formatPrice, mediaUrl, timeAgo } from "@/lib/format";
+import { formatEventWhen, formatPrice, mediaUrl, timeAgo } from "@/lib/format";
 import { JOB_TYPES, STATUS_LABEL } from "@/lib/constants";
 import type { PostWithExtras } from "@/lib/types";
 import { VerifiedBadge } from "./VerifiedBadge";
@@ -25,12 +25,17 @@ export function PostRow({ post, showStatus = false }: { post: PostWithExtras; sh
           )}
         </div>
         <div className="min-w-0 flex-1">
-          {price && <p className="heading text-lg">{price}</p>}
+          {post.kind === "event" && post.event_starts_at ? (
+            <p className="heading text-lg">{formatEventWhen(post.event_starts_at, post.event_ends_at)}</p>
+          ) : (
+            price && <p className="heading text-lg">{price}</p>
+          )}
           {jobLabel && <p className="text-sm font-bold text-ink-soft">{jobLabel}</p>}
           <h3 className="line-clamp-2 font-bold leading-snug">{post.title}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+            {post.kind === "event" && post.venue && <span>{post.venue}</span>}
             {post.area && <span>{post.area}</span>}
-            <span>{timeAgo(post.created_at)}</span>
+            {post.kind === "event" ? price && <span>{price}</span> : <span>{timeAgo(post.created_at)}</span>}
             {comments > 0 && <span>{comments} {comments === 1 ? "comment" : "comments"}</span>}
             {post.author?.is_verified && <VerifiedBadge />}
             {showStatus && post.status !== "active" && (

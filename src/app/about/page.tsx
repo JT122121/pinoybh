@@ -8,8 +8,8 @@ export default function AboutPage() {
   return (
     <TextPage title="About PinoyBH" intro={COMMUNITY_STATEMENT}>
       <p>
-        PinoyBH is a place for kabayan in Bahrain to buy and sell, find a bedspace, share balikbayan box space, and help
-        each other find work. It's free to use.
+        PinoyBH is a place for kabayan in Bahrain to buy and sell, find a bedspace, share balikbayan box space, help
+        each other find work, and get together at community events. It's free to use.
       </p>
       <h2>Made for the community</h2>
       <p>

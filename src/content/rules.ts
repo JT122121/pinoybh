@@ -21,6 +21,10 @@ export const RULES: { title: string; body: string }[] = [
     body: "Only offer or accept work you are legally allowed to do. Part-time or freelance housemaid work and side gigs are not allowed on this site.",
   },
   {
+    title: "Events: safe and open",
+    body: "Events are free or paid at the door. Never ask people to pay in advance to \"reserve\" a slot. Use a public venue, not a private home address. No political rallies or campaigns.",
+  },
+  {
     title: "No harassment",
     body: "No insults, threats, unwanted messages, or sharing other people's private details or photos. Don't report someone just because of their name or how they look.",
   },

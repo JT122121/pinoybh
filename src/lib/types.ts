@@ -1,4 +1,4 @@
-export type PostKind = "listing" | "job";
+export type PostKind = "listing" | "job" | "event";
 export type JobType = "looking_for_work" | "referral" | "household";
 export type PostStatus = "active" | "pending_review" | "hidden" | "removed" | "closed";
 export type PriceType = "fixed" | "negotiable" | "free";
@@ -39,6 +39,10 @@ export interface Post {
   reference_url: string | null;
   own_post_confirmed: boolean;
   sponsorship_confirmed: boolean;
+  event_starts_at: string | null;
+  event_ends_at: string | null;
+  venue: string | null;
+  map_url: string | null;
   status: PostStatus;
   flagged_terms: string[];
   created_at: string;
