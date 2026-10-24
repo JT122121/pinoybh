@@ -83,7 +83,7 @@ export default async function ReportsPage() {
                     <input type="hidden" name="post_id" value={first.post.id} />
                     <input type="hidden" name="status" value="removed" />
                     <input type="hidden" name="note" value={`Reports: ${reports.map((r) => r.reason).join(", ")}`} />
-                    <SubmitButton className="btn btn-danger btn-small" pendingText="...">Remove post</SubmitButton>
+                    <SubmitButton className="btn btn-danger btn-small" pendingText="..." confirm="Remove this post? The member will see it as removed by a moderator.">Remove post</SubmitButton>
                   </form>
                   <form action={setPostStatus}>
                     <input type="hidden" name="post_id" value={first.post.id} />

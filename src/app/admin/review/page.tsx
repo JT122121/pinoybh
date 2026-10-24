@@ -69,7 +69,7 @@ export default async function ReviewPage() {
               <input type="hidden" name="post_id" value={p.id} />
               <input type="hidden" name="status" value="removed" />
               <input name="note" placeholder="Why (optional)" className="input min-h-9 py-1 text-[0.9375rem]" />
-              <SubmitButton className="btn btn-danger btn-small" pendingText="...">Remove</SubmitButton>
+              <SubmitButton className="btn btn-danger btn-small" pendingText="..." confirm="Remove this post? The member will see it as removed by a moderator.">Remove</SubmitButton>
             </form>
           </div>
         </li>

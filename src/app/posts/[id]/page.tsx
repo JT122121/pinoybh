@@ -125,7 +125,7 @@ export default async function PostPage({ params }: Params) {
               )}
               <form action={deletePost}>
                 <input type="hidden" name="id" value={post.id} />
-                <SubmitButton className="btn btn-danger w-full" pendingText="Deleting...">Delete post</SubmitButton>
+                <SubmitButton className="btn btn-danger w-full" pendingText="Deleting..." confirm="Delete this post and its photos? This cannot be undone. If it's sold or filled, use Close post instead.">Delete post</SubmitButton>
               </form>
             </div>
           ) : contact ? (
@@ -189,7 +189,7 @@ export default async function PostPage({ params }: Params) {
                 <form action={blockMember}>
                   <input type="hidden" name="back" value={post.kind === "job" ? "/jobs" : "/marketplace"} />
                   <input type="hidden" name="user_id" value={post.author_id} />
-                  <SubmitButton className="btn btn-quiet btn-small" pendingText="Blocking...">Block member</SubmitButton>
+                  <SubmitButton className="btn btn-quiet btn-small" pendingText="Blocking..." confirm={`Block ${post.author?.display_name ?? "this member"}? You won't see each other's posts while logged in, and they can't follow you. You can unblock them later in My account.`}>Block member</SubmitButton>
                 </form>
               </>
             ) : (

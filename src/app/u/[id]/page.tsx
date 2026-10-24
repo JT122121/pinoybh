@@ -70,7 +70,7 @@ export default async function ProfilePage({ params }: Params) {
             <form action={blockMember}>
               <input type="hidden" name="back" value="/" />
               <input type="hidden" name="user_id" value={id} />
-              <SubmitButton className="btn btn-quiet btn-small" pendingText="Blocking...">Block</SubmitButton>
+              <SubmitButton className="btn btn-quiet btn-small" pendingText="Blocking..." confirm={`Block ${profile.display_name}? You won't see each other's posts while logged in, and they can't follow you. You can unblock them later in My account.`}>Block</SubmitButton>
             </form>
           </div>
         ) : (
