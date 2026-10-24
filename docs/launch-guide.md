@@ -70,7 +70,7 @@ It should say **14**. Also open **Storage**: there should be a public bucket cal
 In Supabase, **Authentication > URL Configuration**:
 
 - **Site URL:** your site address, e.g. `https://pinoybh-abc.vercel.app`
-- **Redirect URLs:** add `https://pinoybh-abc.vercel.app/auth/callback`
+- **Redirect URLs:** add `https://pinoybh-abc.vercel.app/**` (with the two stars, so confirmation and password-reset links can land on the login and new-password pages)
 
 In **Authentication > Sign In / Providers > Email**, keep **Confirm email** on.
 

@@ -81,4 +81,6 @@ export interface Category {
 export interface FormState {
   error?: string;
   success?: string;
+  /** Login only: the email isn't confirmed yet, so offer to resend the link. */
+  needsConfirmation?: boolean;
 }

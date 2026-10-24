@@ -22,8 +22,8 @@ src/content/rules.ts   the community rules text
 
 The full click-by-click guide, including how to test it afterwards, is in [docs/launch-guide.md](docs/launch-guide.md). Short version:
 
-1. **Supabase:** create a project (keep the Data API on). Run both files in `supabase/migrations/` in the SQL Editor, in order. Set the Site URL and the redirect URL `https://YOUR-SITE/auth/callback`. Keep "Confirm email" on.
-2. **Email:** set up custom SMTP (e.g. Resend with your own domain). Supabase's built-in email only reaches your own team, so without this nobody else can confirm their account or reset a password.
+1. **Supabase:** create a project (keep the Data API on). Run both files in `supabase/migrations/` in the SQL Editor, in order. Set the Site URL and the redirect URL `https://YOUR-SITE/**`. Keep "Confirm email" on.
+2. **Email:** set up custom SMTP (e.g. Resend with your own domain). Supabase's built-in email only reaches your own team, so without this nobody else can confirm their account or reset a password. Then paste the templates from [docs/email-templates.md](docs/email-templates.md).
 3. **Run locally:** `cp .env.example .env.local`, fill it in (Supabase > Connect, or Settings > API Keys: Project URL and publishable key), `npm install`, `npm run dev`.
 4. **First admin:** sign up, then in the SQL Editor:
    ```sql

@@ -7,6 +7,7 @@ import { POST_SELECT, sortPhotos } from "@/lib/posts";
 import { createClient } from "@/lib/supabase/server";
 import type { PostWithExtras } from "@/lib/types";
 import { requireViewer } from "@/lib/viewer";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 import { DeleteAccountForm } from "./DeleteAccountForm";
 import { ProfileForm } from "./ProfileForm";
 import { VerificationForm } from "./VerificationForm";
@@ -60,6 +61,10 @@ export default async function AccountPage() {
 
       <Section title="Profile">
         <ProfileForm profile={viewer.profile} />
+      </Section>
+
+      <Section title="Password">
+        <ChangePasswordForm email={viewer.email} />
       </Section>
 
       <Section title="Verified Kabayan">
